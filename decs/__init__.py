@@ -35,7 +35,7 @@ def model_to_json_node(model_fields: list | str, node_bounded_mode: str = "__str
     def decorator(func):
         def wrapper(request, *args, **kwargs):
             model_object = func(request, *args, **kwargs)
-            if isinstance(model_object, models.Model):
+            if isinstance(model_object, models.Model) or isinstance(model_object, models.QuerySet):
                 return DjapyJsonMapper(model_object, model_fields, node_bounded_mode=node_bounded_mode)
             return model_object
 
