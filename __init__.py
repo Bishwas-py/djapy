@@ -4,11 +4,10 @@ from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.utils import timezone
 
-from djapy.helpers import ErrorMap
 from djapy.types import JsonNodeParams
 
 
-class JsonNode:
+class DjapyJsonMapper:
     GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
     __ALL_FIELDS = '__all__'
     __STRICT_MODE = '__strict__'
@@ -19,11 +18,6 @@ class JsonNode:
         self.model_objects = model_objects
         self.model_fields = model_fields
         self.node_bounded_mode = kwargs.get('node_bounded_mode', self.__STRICT_MODE)
-
-        self.error_map = ErrorMap(
-            excluded_error=kwargs.get('excluded_error', []),
-            only_included_error=kwargs.get('only_included_error', [])
-        )
 
     def get_final_fields(self) -> iter:
         temp_fields = self.model_fields
@@ -41,24 +35,6 @@ class JsonNode:
 
         return temp_fields + concatenated_fields
 
-    def node_error(self, exception: Exception, message: str, error_type: str) -> JsonResponse:
-        error_data = {
-            'error': str(exception),
-            'message': message,
-            'error_type': error_type,
-            'occurred_at': timezone.now(),
-            'model_fields': self.model_fields,
-            'model_object': self.get_model_object_name(),
-            'model_fields_type': type(self.model_fields).__name__,
-            'line': exception.__traceback__.tb_lineno,
-            'file': exception.__traceback__.tb_frame.f_code.co_filename
-        }
-
-        logging.error(f"{error_type}: {message}")
-        logging.error(f"Error Occurred At: {error_data['occurred_at']},"
-                      f" File: {error_data['file']}:{error_data['line']}")
-        return JsonResponse(error_data, status=400)
-
     def get_model_object_name(self):
         if isinstance(self.model_objects, models.Model):
             return self.model_objects.__class__.__name__
@@ -68,22 +44,19 @@ class JsonNode:
             return "Unknown Model Object"
 
     def nodify(self) -> JsonResponse:
-        try:
-            final_fields = self.get_final_fields()
-            if isinstance(self.model_objects, models.Model):
-                json_node = {
-                    field: getattr(self.model_objects, field, None) for field in final_fields
+        final_fields = self.get_final_fields()
+        if isinstance(self.model_objects, models.Model):
+            json_node = {
+                field: getattr(self.model_objects, field, None) for field in final_fields
+            }
+            return JsonResponse(json_node)
+        elif isinstance(self.model_objects, QuerySet):
+            result = [
+                {
+                    field: getattr(obj, field, None) for field in final_fields
                 }
-                return JsonResponse(json_node)
-            elif isinstance(self.model_objects, QuerySet):
-                result = [
-                    {
-                        field: getattr(obj, field, None) for field in final_fields
-                    }
-                    for obj in self.model_objects
-                ]
-                return JsonResponse(result, safe=False)
-            else:
-                raise ValueError("Invalid input type. Must be a Model or QuerySet.")
-        except TypeError as e:
-            return self.node_error(e, "Please provide a field as list[str] or tuple[str, list[str]]", "TypeError")
+                for obj in self.model_objects
+            ]
+            return JsonResponse(result, safe=False)
+        else:
+            raise ValueError("Invalid input type. Must be a Model or QuerySet.")
