@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 
 from djapy.utils.mapper import DjapyJsonMapper
 
-
+"""@tejmagar wrote this code."""
 class DjapyView(ABC):
     model_fields = None
     node_bounded_mode: str = "__strict__"

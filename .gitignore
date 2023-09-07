@@ -1,10 +1,6 @@
-__pycache__/
-source_djapy/dist/
-djapy.egg-info/
-manage.py
-db.sqlite3
-venv/
-moko/
-manjo
-./__init__.py
-.idea/
+*
+!djapy/
+!djapy/*.py
+!setup.py
+!requirements.txt
+!README.md
