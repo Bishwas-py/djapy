@@ -5,12 +5,12 @@ with open("README.md", "r") as fh:
 
 setup(
     name="djapy",
-    version="0.0.1",
+    version="0.0.3",
     description="Do not quit using Django just because of Django Rest Framework, Django is JSOMe",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Bishwas-py/djapy",
-    py_modules=["."],
+    py_modules=["djapy"],
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -1,9 +1,9 @@
 from abc import abstractmethod, ABC
 
-from djapy import JsonNode
+from djapy.utils.mapper import DjapyJsonMapper
 
 
-class APIView(ABC):
+class DjapyView(ABC):
     model_fields = None
     node_bounded_mode: str = "__strict__"
 
@@ -13,7 +13,7 @@ class APIView(ABC):
 
     def __render__(self, request):
         queryset = self.get_queryset(request)
-        json_node = JsonNode(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
+        json_node = DjapyJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
         return json_node.nodify()
 
     @abstractmethod

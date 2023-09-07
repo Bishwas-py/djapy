@@ -3,7 +3,7 @@ import types
 from django.db import models
 from django.http import JsonResponse
 
-from djapy import DjapyJsonMapper
+from djapy.utils.mapper import DjapyJsonMapper
 
 
 def node_to_json_response(func):
@@ -62,4 +62,3 @@ def method_to_view(func):
                 return view_or_model(request, *args, **kwargs)
 
     return wrapper
-

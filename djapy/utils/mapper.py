@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.http import JsonResponse
 
-from djapy.types import JsonNodeParams
+from djapy.utils.types import JsonNodeParams
 
 
 class DjapyJsonMapper:
