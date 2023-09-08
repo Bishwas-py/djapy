@@ -1,11 +1,12 @@
 import copy
 import inspect
+import json
 from functools import wraps
-from django.http import QueryDict
 
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, QueryDict
+from django.http.multipartparser import MultiPartParser
 
-from djapy.data.fields import get_field_object, get_request_data
+from djapy.data.fields import get_field_object, get_request_value, get_request_data
 from djapy.data.mapper import DataWrapper, QueryWrapper
 from djapy.utils.response_format import create_response
 
@@ -51,7 +52,8 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
 
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
-            request_data = QueryDict(request.body)
+            request_data = get_request_data(request)
+
             data = DataWrapper()
             query = QueryWrapper()
             errors = []
@@ -68,7 +70,7 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
             for field_name, field_type in payloads:
                 if field_name not in request_data:
                     errors.append(create_response(
-                        'failed', 'query_not_found', f'Payload `{field_name}` is required',
+                        'failed', 'payload_not_found', f'Payload `{field_name}` is required',
                         extras={'field_name': field_name, 'field_type': 'payload'}
                     ))
                 elif not isinstance(request_data[field_name], field_type):
@@ -88,6 +90,8 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
                 kwargs['data'] = data
             if 'query' in params:
                 kwargs['query'] = query
+            if '_data' in params:
+                kwargs['_data'] = request_data
 
             return view_func(request, *args, **kwargs)
 
@@ -102,7 +106,6 @@ def field_required(func):
     the view function according to provided annotations.
     """
     query_class = func.__annotations__.get("query")
-    print(func)
     data_class = func.__annotations__.get("data")
     query_object, query_items = get_field_object(query_class)
     data_object, data_items = get_field_object(data_class)
@@ -113,37 +116,40 @@ def field_required(func):
         data_items = []
 
     def wrapper(request: HttpRequest, *args, **kwargs):
-        request_data = QueryDict(request.body)
+        request_data = get_request_data(request)
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
 
         errors = []
 
         for query_name, query_type in query_items:
-            request_query = get_request_data(request.GET, query_name, query_type)
-            if request_query is None:
+            query_value = get_request_value(request.GET, query_name, query_type)
+            if query_value is None:
                 errors.append(create_response(
                     'failed', 'query_not_found', f'Query `{query_name}` is required',
                     extras={'field_name': query_name, 'field_type': 'query'}
                 ))
             else:
-                setattr(new_query_object, query_name, request_query)
+                setattr(new_query_object, query_name, query_value)
 
         for data_name, data_type in data_items:
-            request_query = get_request_data(request_data, data_name, data_type)
-            if request_query is None:
+            data_value = get_request_value(request_data, data_name, data_type)
+            if data_value is None:
                 errors.append(create_response(
                     'failed', 'data_not_found', f'Data `{data_name}` is required',
                     extras={'field_name': data_name, 'field_type': 'data'}
                 ))
             else:
-                setattr(new_data_object, data_name, request_query)
+                setattr(new_data_object, data_name, data_value)
 
         if query_class is not None:
             kwargs['query'] = new_query_object
 
         if data_class is not None:
             kwargs['data'] = new_data_object
+
+        if '_data' in func.__annotations__:
+            kwargs['_data'] = request_data
 
         if errors:
             return JsonResponse(errors, status=400, safe=False)

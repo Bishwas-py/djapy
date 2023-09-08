@@ -1,9 +1,9 @@
+import json
 from typing import Callable, Any, Type
-from collections import abc
 
 from django.db import models
 from django.http import QueryDict
-from django.utils.datastructures import MultiValueDict
+from django.http.multipartparser import MultiPartParser
 
 
 def get_field_object(field_object_callable: Callable[[], object]) \
@@ -27,7 +27,7 @@ def get_field_object(field_object_callable: Callable[[], object]) \
     return None, None
 
 
-def get_request_data(request_data: Type[QueryDict] | QueryDict, field_name: str, field_type: type) -> Any | None:
+def get_request_value(request_data: Type[QueryDict] | QueryDict, field_name: str, field_type: type) -> Any | None:
     """
     Helper function to retrieve and convert request data. If the field name is not in the request data, it will return
     None. Later on, another function wil use to know if the field is None, and return
@@ -40,3 +40,17 @@ def get_request_data(request_data: Type[QueryDict] | QueryDict, field_name: str,
     if field_name in request_data:
         return field_type(request_data[field_name])
     return None
+
+
+def get_request_data(request):
+    content_type = request.META.get('CONTENT_TYPE', '')
+    if content_type.startswith('multipart'):
+        request_data, _multi_value_dict = MultiPartParser(
+            request.META, request,
+            request.upload_handlers
+        ).parse()
+    elif content_type == "application/json":
+        request_data = json.loads(request.body)
+    else:
+        request_data = QueryDict(request.body)
+    return request_data
