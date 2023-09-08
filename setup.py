@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="djapy",
-    version="0.0.4",
+    version="0.0.5",
     description="Do not quit using Django just because of Django Rest Framework, Django is JSOMe",
     long_description=long_description,
     long_description_content_type="text/markdown",
