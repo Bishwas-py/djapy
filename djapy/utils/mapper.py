@@ -8,12 +8,19 @@ __ALL_FIELDS = '__all__'
 
 
 def check_model_fields(model_fields):
+    """
+    Checks if the model fields are valid.
+    :param model_fields: The model fields to check.
+    :return bool: True if the model fields are valid, False otherwise.
+    :raises ValueError: If the model fields are not valid.
+    """
     if isinstance(model_fields, (str, (list, tuple, set))):
         if model_fields != __ALL_FIELDS:
             raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
         return True
 
     raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
+
 
 class DjapyModelJsonMapper:
     GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
