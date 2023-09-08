@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 from djapy.views.generics import DjapyBaseView
 from djapy.utils.response_format import create_response
@@ -63,4 +63,4 @@ class LoginRequiredMixin(PermissionMixin):
             self.get_login_required_extra(request)
         )
 
-        return HttpResponse(json.dumps(error_response))
+        return JsonResponse(error_response)
