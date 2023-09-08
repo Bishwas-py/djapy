@@ -19,7 +19,7 @@ class DjapyView(DjapyBaseView, ABC):
     node_bounded_mode: str = "__strict__"
 
     def __init__(self):
-        check_model_fields(self.model_fields, self.model_fields)
+        check_model_fields(self.model_fields)
 
     def __render__(self, request):
         queryset = self.get_queryset(request)

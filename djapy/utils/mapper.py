@@ -6,18 +6,14 @@ from djapy.utils.types import JsonNodeParams
 
 __ALL_FIELDS = '__all__'
 
-"""@tejmagar needs to fix this"""
 
+def check_model_fields(model_fields):
+    if isinstance(model_fields, (str, (list, tuple, set))):
+        if model_fields != __ALL_FIELDS:
+            raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
+        return True
 
-def check_model_fields(model_fields, all_fields):
-    """if isinstance(model_fields, str) and model_fields != __ALL_FIELDS:
-        raise ValueError(f"Models fields must be a list or `{all_fields}`")
-    else:
-        if not isinstance(model_fields, (list, tuple, set)):
-            raise ValueError(f"Models fields must be a list or `{all_fields}`")
-        return True"""
-    return True
-
+    raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
 
 class DjapyModelJsonMapper:
     GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
