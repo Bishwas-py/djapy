@@ -14,11 +14,13 @@ def check_model_fields(model_fields):
     :return bool: True if the model fields are valid, False otherwise.
     :raises ValueError: If the model fields are not valid.
     """
-    if isinstance(model_fields, (str, (list, tuple, set))):
-        if model_fields != __ALL_FIELDS:
-            raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
-        return True
-
+    if isinstance(model_fields, str):
+        if model_fields == __ALL_FIELDS:
+            return True
+        raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
+    if isinstance(model_fields, (list, tuple, set)):
+        if all(isinstance(field, str) for field in model_fields):
+            return True
     raise ValueError(f"Model fields must be a list or '{__ALL_FIELDS}'")
 
 
@@ -77,11 +79,10 @@ class DjapyModelJsonMapper:
 
 
 class DjapyObjectJsonMapper:
-    def __init__(self, raw_object, object_fields: set | list | tuple[str, list],
+    def __init__(self, raw_object, object_fields: set | list | str,
                  exclude_null_fields: bool = False, **kwargs: JsonNodeParams) -> None:
         self.raw_object = raw_object
-        self.object_fields = object_fields if isinstance(object_fields, set) or isinstance(object_fields, list) else [
-            object_fields]
+        self.object_fields = object_fields
         self.exclude_null_fields = exclude_null_fields
 
     def nodify(self) -> JsonResponse:

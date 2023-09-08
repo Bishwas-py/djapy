@@ -52,13 +52,19 @@ def object_to_json_node(object_fields: set | list | str, exclude_null_fields: bo
     :param exclude_null_fields: Boolean value to indicate whether null fields should be excluded.
     :return: A JsonResponse.
     """
-    if not isinstance(object_fields, set) and not isinstance(object_fields, list) and not isinstance(object_fields,
-                                                                                                     str):
+    if not isinstance(object_fields, (set, list, str)):
         raise TypeError('object_fields must be a set, list or str')
+
+    if isinstance(object_fields, str):
+        object_fields = [object_fields]
+    else:
+        object_fields = set(object_fields)
 
     def decorator(func):
         def wrapper(request, *args, **kwargs):
             raw_object = func(request, *args, **kwargs)
+            if isinstance(raw_object, JsonResponse):
+                return raw_object
             if isinstance(raw_object, object):
                 return DjapyObjectJsonMapper(raw_object, object_fields, exclude_null_fields=exclude_null_fields)
             return raw_object
