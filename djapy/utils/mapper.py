@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from djapy.utils.types import JsonNodeParams
 
 
-class DjapyJsonMapper:
+class DjapyModelJsonMapper:
     GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
     __ALL_FIELDS = '__all__'
     __IS_STRICTLY_BOUNDED = False
@@ -58,3 +58,33 @@ class DjapyJsonMapper:
             return JsonResponse(result, safe=False)
         else:
             raise ValueError("Invalid input type. Must be a Model or QuerySet.")
+
+
+class DjapyObjectJsonMapper:
+    def __init__(self, raw_object, object_fields: set | list | tuple[str, list],
+                 exclude_null_fields: bool = False, **kwargs: JsonNodeParams) -> None:
+        self.raw_object = raw_object
+        self.object_fields = object_fields if isinstance(object_fields, set) or isinstance(object_fields, list) else [
+            object_fields]
+        self.exclude_null_fields = exclude_null_fields
+
+    def nodify(self) -> JsonResponse:
+        if isinstance(self.raw_object, object):
+            json_node = {
+            }
+            for field in self.object_fields:
+                if isinstance(self.raw_object, dict):
+                    usable_object = self.raw_object.get(field, None)
+                else:
+                    usable_object = getattr(self.raw_object, field, None)
+
+                if callable(usable_object):
+                    usable_object = usable_object()
+                    field_name = field.replace('get_', '')
+                else:
+                    field_name = field
+                if not self.exclude_null_fields or usable_object is not None:
+                    json_node[field_name] = usable_object
+            return JsonResponse(json_node)
+        else:
+            raise ValueError("Invalid input type. Must be an object.")

@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 
-from djapy.utils.mapper import DjapyJsonMapper
+from djapy.utils.mapper import DjapyModelJsonMapper
 
 
 class DjapyView(ABC):
@@ -13,7 +13,7 @@ class DjapyView(ABC):
 
     def __render__(self, request):
         queryset = self.get_queryset(request)
-        json_node = DjapyJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
+        json_node = DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
         return json_node.nodify()
 
     @abstractmethod

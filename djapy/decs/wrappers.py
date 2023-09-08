@@ -3,7 +3,7 @@ import types
 from django.db import models
 from django.http import JsonResponse
 
-from djapy.utils.mapper import DjapyJsonMapper
+from djapy.utils.mapper import DjapyModelJsonMapper, DjapyObjectJsonMapper
 
 
 def node_to_json_response(func):
@@ -16,7 +16,7 @@ def node_to_json_response(func):
 
     def wrapper(*args, **kwargs) -> JsonResponse:
         json_node = func(*args, **kwargs)
-        if isinstance(json_node, DjapyJsonMapper):
+        if isinstance(json_node, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return json_node.nodify()
         return json_node
 
@@ -36,8 +36,32 @@ def model_to_json_node(model_fields: list | str, is_strictly_bounded: bool = Fal
         def wrapper(request, *args, **kwargs):
             model_object = func(request, *args, **kwargs)
             if isinstance(model_object, models.Model) or isinstance(model_object, models.QuerySet):
-                return DjapyJsonMapper(model_object, model_fields, is_strictly_bounded=is_strictly_bounded)
+                return DjapyModelJsonMapper(model_object, model_fields, is_strictly_bounded=is_strictly_bounded)
             return model_object
+
+        return wrapper
+
+    return decorator
+
+
+def object_to_json_node(object_fields: set | list | str, exclude_null_fields: bool = False) -> callable:
+    """
+    Use this decorator to return a JsonResponse from a function that returns a JsonNodify object.
+
+    :param object_fields: A function that returns a JsonNodify object.
+    :param exclude_null_fields: Boolean value to indicate whether null fields should be excluded.
+    :return: A JsonResponse.
+    """
+    if not isinstance(object_fields, set) and not isinstance(object_fields, list) and not isinstance(object_fields,
+                                                                                                     str):
+        raise TypeError('object_fields must be a set, list or str')
+
+    def decorator(func):
+        def wrapper(request, *args, **kwargs):
+            raw_object = func(request, *args, **kwargs)
+            if isinstance(raw_object, object):
+                return DjapyObjectJsonMapper(raw_object, object_fields, exclude_null_fields=exclude_null_fields)
+            return raw_object
 
         return wrapper
 
