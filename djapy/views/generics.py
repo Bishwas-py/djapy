@@ -3,7 +3,18 @@ from abc import abstractmethod, ABC
 from djapy.utils.mapper import DjapyModelJsonMapper
 
 
-class DjapyView(ABC):
+class DjapyBaseView(ABC):
+    @abstractmethod
+    def __render__(self, request):
+        pass
+
+    @classmethod
+    def as_view(cls):
+        view = cls()
+        return view.__render__
+
+
+class DjapyView(DjapyBaseView, ABC):
     model_fields = None
     node_bounded_mode: str = "__strict__"
 
@@ -19,8 +30,3 @@ class DjapyView(ABC):
     @abstractmethod
     def get_queryset(self, request):
         pass
-
-    @classmethod
-    def as_view(cls):
-        view = cls()
-        return view.__render__
