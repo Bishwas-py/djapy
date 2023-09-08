@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 
-from djapy.utils.mapper import DjapyModelJsonMapper
+from djapy.utils.mapper import DjapyModelJsonMapper, check_model_fields
 
 
 class DjapyBaseView(ABC):
@@ -19,8 +19,7 @@ class DjapyView(DjapyBaseView, ABC):
     node_bounded_mode: str = "__strict__"
 
     def __init__(self):
-        if not self.model_fields:
-            raise Exception('Please specify model fields')
+        check_model_fields(self.model_fields, self.model_fields)
 
     def __render__(self, request):
         queryset = self.get_queryset(request)

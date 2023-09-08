@@ -4,10 +4,23 @@ from django.http import JsonResponse
 
 from djapy.utils.types import JsonNodeParams
 
+__ALL_FIELDS = '__all__'
+
+"""@tejmagar needs to fix this"""
+
+
+def check_model_fields(model_fields, all_fields):
+    """if isinstance(model_fields, str) and model_fields != __ALL_FIELDS:
+        raise ValueError(f"Models fields must be a list or `{all_fields}`")
+    else:
+        if not isinstance(model_fields, (list, tuple, set)):
+            raise ValueError(f"Models fields must be a list or `{all_fields}`")
+        return True"""
+    return True
+
 
 class DjapyModelJsonMapper:
     GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
-    __ALL_FIELDS = '__all__'
     __IS_STRICTLY_BOUNDED = False
     __OPEN_MODE = '__open__'
 
@@ -21,7 +34,7 @@ class DjapyModelJsonMapper:
         temp_fields = self.model_fields
         concatenated_fields = []
 
-        if isinstance(self.model_fields, str) and self.model_fields == self.__ALL_FIELDS:
+        if check_model_fields(self.model_fields):
             if isinstance(self.model_objects, models.Model):
                 temp_fields = [field.name
                                for field in self.model_objects._meta.fields]
