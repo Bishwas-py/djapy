@@ -44,15 +44,17 @@ def model_to_json_node(model_fields: list | str, is_strictly_bounded: bool = Fal
     return decorator
 
 
-def object_to_json_node(object_fields: set | list | str, exclude_null_fields: bool = False) -> callable:
+def object_to_json_node(object_fields: list | str, exclude_null_fields: bool = False,
+                        field_parser: dict = None) -> callable:
     """
     Use this decorator to return a JsonResponse from a function that returns a JsonNodify object.
 
     :param object_fields: A function that returns a JsonNodify object.
     :param exclude_null_fields: Boolean value to indicate whether null fields should be excluded.
+    :param field_parser: A dictionary of field parsers to apply to the object fields.
     :return: A JsonResponse.
     """
-    if not isinstance(object_fields, (set, list, str)):
+    if not isinstance(object_fields, (list, str)):
         raise TypeError('object_fields must be a set, list or str')
 
     if isinstance(object_fields, str):
@@ -66,7 +68,11 @@ def object_to_json_node(object_fields: set | list | str, exclude_null_fields: bo
             if isinstance(raw_object, JsonResponse):
                 return raw_object
             if isinstance(raw_object, object):
-                return DjapyObjectJsonMapper(raw_object, object_fields, exclude_null_fields=exclude_null_fields)
+                return DjapyObjectJsonMapper(
+                    raw_object, object_fields,
+                    exclude_null_fields=exclude_null_fields,
+                    field_parser=field_parser
+                )
             return raw_object
 
         return wrapper

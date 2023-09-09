@@ -80,10 +80,11 @@ class DjapyModelJsonMapper:
 
 class DjapyObjectJsonMapper:
     def __init__(self, raw_object, object_fields: set | list | str,
-                 exclude_null_fields: bool = False, **kwargs: JsonNodeParams) -> None:
+                 exclude_null_fields: bool = False, field_parser: dict = None, **kwargs: JsonNodeParams) -> None:
         self.raw_object = raw_object
         self.object_fields = object_fields
         self.exclude_null_fields = exclude_null_fields
+        self.field_parser = field_parser
 
     def nodify(self) -> JsonResponse:
         if isinstance(self.raw_object, object):
@@ -95,13 +96,19 @@ class DjapyObjectJsonMapper:
                 else:
                     usable_object = getattr(self.raw_object, field, None)
 
-                if callable(usable_object):
+                # Apply field parser if exists
+                if self.field_parser and field in self.field_parser:
+                    usable_object = self.field_parser[field](usable_object)
+                    field_name = field
+                elif callable(usable_object):
                     usable_object = usable_object()
                     field_name = field.replace('get_', '')
                 else:
                     field_name = field
+
                 if not self.exclude_null_fields or usable_object is not None:
                     json_node[field_name] = usable_object
+
             return JsonResponse(json_node)
         else:
             raise ValueError("Invalid input type. Must be an object.")

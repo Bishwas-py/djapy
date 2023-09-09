@@ -42,7 +42,7 @@ def get_request_value(request_data, field_name, field_type):
     :param field_type: type or tuple of types
         The type to cast the fetched value to. If a tuple of types is specified, the function will try casting to each type in order, using the first successful cast.
     :return: varied
-        The fetched value from the request data, casted to `field_type`. If the value is not found in the request data, `None` is returned. If the value cannot be casted to `field_type`, it is returned as-is.
+        The fetched value from the request data, cast to `field_type`. If the value is not found in the request data, `None` is returned. If the value cannot be casted to `field_type`, it is returned as-is.
     """
 
     field_value = request_data.get(field_name)
@@ -62,6 +62,20 @@ def get_request_value(request_data, field_name, field_type):
 
 
 def get_request_data(request):
+    """
+    Extracts the request data from a given HTTP request based on its content type.
+
+    The method supports 'multipart', 'application/json' content types and a default case, where it tries to parse the request body as a QueryDict.
+
+    :param request: The HttpRequest object to fetch data from.
+    :type request: django.http.HttpRequest
+
+    :return: The request data in dictionary format. If there's no request data, an empty dictionary is returned.
+    :rtype: dict
+
+    The method fetching the body of the request, checking its 'CONTENT_TYPE' field, and then uses either the MultiPartParser for 'multipart' types, json.loads for 'application/json' or QueryDict for other types.
+    """
+
     content_type = request.META.get('CONTENT_TYPE', '')
     if content_type.startswith('multipart'):
         request_data, _multi_value_dict = MultiPartParser(
