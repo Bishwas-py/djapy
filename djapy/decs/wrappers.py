@@ -44,7 +44,8 @@ def model_to_json_node(model_fields: list | str, is_strictly_bounded: bool = Fal
     return decorator
 
 
-def object_to_json_node(object_fields: list | str, field_parser: dict = None, exclude_null_fields: bool = False) -> callable:
+def object_to_json_node(object_fields: list | str, field_parser: dict = None,
+                        exclude_null_fields: bool = False) -> callable:
     """
     Use this decorator to return a JsonResponse from a function that returns a JsonNodify object.
 
@@ -64,6 +65,7 @@ def object_to_json_node(object_fields: list | str, field_parser: dict = None, ex
     def decorator(func):
         def wrapper(request, *args, **kwargs):
             raw_object = func(request, *args, **kwargs)
+            # the raw_object is a JsonResponse and also an object, so just return it
             if isinstance(raw_object, JsonResponse):
                 return raw_object
             if isinstance(raw_object, object):
