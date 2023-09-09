@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 
-from djapy.utils.mapper import DjapyModelJsonMapper, check_model_fields
+from djapy.parser.models_parser import check_model_fields
+from djapy.utils.mapper import DjapyModelJsonMapper
 
 
 class DjapyBaseView(ABC):

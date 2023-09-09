@@ -44,8 +44,7 @@ def model_to_json_node(model_fields: list | str, is_strictly_bounded: bool = Fal
     return decorator
 
 
-def object_to_json_node(object_fields: list | str, exclude_null_fields: bool = False,
-                        field_parser: dict = None) -> callable:
+def object_to_json_node(object_fields: list | str, field_parser: dict = None, exclude_null_fields: bool = False) -> callable:
     """
     Use this decorator to return a JsonResponse from a function that returns a JsonNodify object.
 
