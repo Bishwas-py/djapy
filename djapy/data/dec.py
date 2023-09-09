@@ -2,6 +2,8 @@ import copy
 import inspect
 import json
 from functools import wraps
+from types import UnionType, NoneType
+from typing import Union
 
 from django.http import HttpRequest, JsonResponse, QueryDict
 from django.http.multipartparser import MultiPartParser
@@ -119,12 +121,14 @@ def field_required(func):
         request_data = get_request_data(request)
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
-
         errors = []
 
         for query_name, query_type in query_items:
+            is_optional_input = (isinstance(query_type, UnionType) and
+                                 any([issubclass(q, NoneType) for q in query_type.__args__]))
+
             query_value = get_request_value(request.GET, query_name, query_type)
-            if query_value is None:
+            if query_value is None and not is_optional_input:
                 errors.append(create_response(
                     'failed', 'query_not_found', f'Query `{query_name}` is required',
                     extras={'field_name': query_name, 'field_type': 'query'}

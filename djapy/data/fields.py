@@ -1,5 +1,9 @@
 import json
-from typing import Callable, Any, Type
+
+import json
+import dataclasses
+
+from typing import Callable
 
 from django.db import models
 from django.http import QueryDict
@@ -27,19 +31,34 @@ def get_field_object(field_object_callable: Callable[[], object]) \
     return None, None
 
 
-def get_request_value(request_data: Type[QueryDict] | QueryDict, field_name: str, field_type: type) -> Any | None:
+def get_request_value(request_data, field_name, field_type):
     """
-    Helper function to retrieve and convert request data. If the field name is not in the request data, it will return
-    None. Later on, another function wil use to know if the field is None, and return
-    an JsonResponse error response.
-    :param request_data: The request data.
-    :param field_name: The name of the field.
-    :param field_type: The type of the field.
-    :return: The converted request data.
+    Fetches a specified value from a request dictionary and attempts to cast it to a specified type.
+
+    :param request_data: dict
+        A dictionary-like object containing request data. This is typically a Django HttpRequest object but can be a dict-like object as well.
+    :param field_name: str
+        The name of the field to fetch from `request_data`.
+    :param field_type: type or tuple of types
+        The type to cast the fetched value to. If a tuple of types is specified, the function will try casting to each type in order, using the first successful cast.
+    :return: varied
+        The fetched value from the request data, casted to `field_type`. If the value is not found in the request data, `None` is returned. If the value cannot be casted to `field_type`, it is returned as-is.
     """
-    if field_name in request_data:
-        return field_type(request_data[field_name])
-    return None
+
+    field_value = request_data.get(field_name)
+    if field_value:
+        if dataclasses.is_dataclass(field_type):
+            field_value = field_type(**json.loads(field_value))
+        elif hasattr(field_type, '__args__'):
+            for typ in field_type.__args__:
+                try:
+                    field_value = typ(field_value)
+                    break
+                except ValueError:
+                    continue
+        else:
+            field_value = field_type(field_value)
+    return field_value
 
 
 def get_request_data(request):
@@ -51,6 +70,8 @@ def get_request_data(request):
         ).parse()
     elif content_type == "application/json":
         request_data = json.loads(request.body)
-    else:
+    elif request.body:
         request_data = QueryDict(request.body)
+    else:
+        request_data = {}
     return request_data
