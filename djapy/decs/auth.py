@@ -25,6 +25,7 @@ def djapy_login_required(
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             if request.user.is_authenticated:
+                print('authenticated')
                 return view_func(request, *args, **kwargs)
             else:
                 return JsonResponse(response_data, status=403)

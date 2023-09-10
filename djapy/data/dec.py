@@ -102,13 +102,13 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
     return decorator
 
 
-def field_required(func):
+def field_required(view_func):
     """
     This decorator is used to validate the input fields of a view function, and attach the validated input fields to
     the view function according to provided annotations.
     """
-    query_class = func.__annotations__.get("query")
-    data_class = func.__annotations__.get("data")
+    query_class = view_func.__annotations__.get("query")
+    data_class = view_func.__annotations__.get("data")
     query_object, query_items = get_field_object(query_class)
     data_object, data_items = get_field_object(data_class)
 
@@ -117,7 +117,8 @@ def field_required(func):
     if data_items is None:
         data_items = []
 
-    def wrapper(request: HttpRequest, *args, **kwargs):
+    @wraps(view_func)
+    def _wrapped_view(request: HttpRequest, *args, **kwargs):
         request_data = get_request_data(request)
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
@@ -152,11 +153,11 @@ def field_required(func):
         if data_class is not None:
             kwargs['data'] = new_data_object
 
-        if '_data' in func.__annotations__:
+        if '_data' in view_func.__annotations__:
             kwargs['_data'] = request_data
 
         if errors:
             return JsonResponse(errors, status=400, safe=False)
-        return func(request, *args, **kwargs)
+        return view_func(request, *args, **kwargs)
 
-    return wrapper
+    return _wrapped_view

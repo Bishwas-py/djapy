@@ -4,7 +4,7 @@ from django.http import JsonResponse
 
 from djapy.parser.models_parser import models_get_data
 from djapy.utils import defaults
-from djapy.utils.types import JsonNodeParams
+import djapy.utils.types
 
 
 class DjapyModelJsonMapper:
@@ -13,7 +13,7 @@ class DjapyModelJsonMapper:
     __OPEN_MODE = '__open__'
 
     def __init__(self, model_objects, model_fields: str | list | tuple[str, list],
-                 **kwargs: JsonNodeParams) -> None:
+                 **kwargs: "djapy.utils.types.JsonNodeParams") -> None:
         self.model_objects = model_objects
         self.model_fields = model_fields
         self.is_strictly_bounded = kwargs.get('is_strictly_bounded', self.__IS_STRICTLY_BOUNDED)
@@ -33,7 +33,8 @@ class DjapyModelJsonMapper:
 
 class DjapyObjectJsonMapper:
     def __init__(self, raw_object, object_fields: set | list | str,
-                 exclude_null_fields: bool = False, field_parser: dict = None, **kwargs: JsonNodeParams) -> None:
+                 exclude_null_fields: bool = False,
+                 field_parser: "djapy.utils.types.FieldParserType" = None) -> None:
         self.raw_object = raw_object
         self.object_fields = object_fields
         self.exclude_null_fields = exclude_null_fields
@@ -48,7 +49,6 @@ class DjapyObjectJsonMapper:
                     object_field_value = self.raw_object.get(field, None)
                 else:
                     object_field_value = getattr(self.raw_object, field, None)
-                print(field, object_field_value)
 
                 # Apply field parser if exists
                 if self.field_parser and field in self.field_parser:
