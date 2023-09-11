@@ -5,6 +5,7 @@ from djapy.utils.mapper import DjapyModelJsonMapper
 
 
 class DjapyBaseView(ABC):
+
     @abstractmethod
     def __render__(self, request):
         pass
@@ -22,11 +23,30 @@ class DjapyView(DjapyBaseView, ABC):
     def __init__(self):
         check_model_fields(self.model_fields)
 
-    def __render__(self, request):
+    @abstractmethod
+    def get_queryset(self, request):
+        pass
+
+    def render(self, request):
         queryset = self.get_queryset(request)
         json_node = DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
         return json_node.nodify()
 
-    @abstractmethod
-    def get_queryset(self, request):
-        pass
+    def __render__(self, request):
+        """
+        Check if the developer has declared a custom response based on request method.
+        For example:
+
+        def get(self, request):
+            pass
+
+        def post(self, request):
+            pass
+        """
+
+        response_based_on_request_method_declared = hasattr(self, request.method.lower())
+        if response_based_on_request_method_declared:
+            response_func = getattr(self, request.method.lower())
+            return response_func(request)
+
+        return self.render(request)
