@@ -1,8 +1,10 @@
+import importlib
 from abc import abstractmethod, ABC
 from types import NoneType
 
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from djapy.parser.models_parser import check_model_fields
 from djapy.utils.mapper import DjapyModelJsonMapper
@@ -85,7 +87,19 @@ class DjapyView(DjapyBaseView, ABC):
 
         return JsonResponse(self.__jsonify__(queryset))
 
+    def __authenticate_user__(self, request):
+        if not hasattr(settings, 'DJAPY_AUTH_BACKEND'):
+            return
+
+        class_name = getattr(settings, 'DJAPY_AUTH_BACKEND')
+        module_name, class_name = class_name.rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        class_type = getattr(module, class_name)
+        auth_backend = class_type()
+        auth_backend.authenticate(request)
+
     @csrf_exempt
     def __render__(self, request):
         self.request = request
+        self.__authenticate_user__(request)
         return self.render(request)
