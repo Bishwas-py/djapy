@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
+from types import NoneType
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
 
 from djapy.parser.models_parser import check_model_fields
 from djapy.utils.mapper import DjapyModelJsonMapper
@@ -48,9 +48,35 @@ class DjapyView(DjapyBaseView, ABC):
             super_render = getattr(super(), 'render')
             return super_render(request)
 
-        has_data = self.get_data(request)
-        if has_data:
-            return JsonResponse(self.get_data(request), safe=False)
+        """
+            Check if the developer has declared a custom response based on request method.
+            For example:
+
+            def get(self, request):
+                pass
+
+            def post(self, request):
+                pass
+        """
+
+        response_based_on_request_method_declared = hasattr(self, request.method.lower())
+        if response_based_on_request_method_declared:
+            response_func = getattr(self, request.method.lower())
+            response = response_func(request)
+
+            if type(response) is NoneType:
+                raise Exception(f'Response is None, please check your def {request.method.lower()}() method.')
+
+            if isinstance(response, dict):
+                return JsonResponse(response, safe=False)
+
+            if not isinstance(response, HttpResponse):
+                raise Exception(f'Cannot convert to JSON: {response}. '
+                                f'Please check your def {request.method.lower()}() method.')
+
+        response_data = self.get_data(request)
+        if response_data:
+            return JsonResponse(response_data, safe=False)
 
         queryset = self.get_queryset(request)
         if not queryset:
@@ -58,23 +84,6 @@ class DjapyView(DjapyBaseView, ABC):
 
         return JsonResponse(self.__jsonify__(queryset))
 
-    @csrf_exempt
     def __render__(self, request):
         self.request = request
-        """
-        Check if the developer has declared a custom response based on request method.
-        For example:
-
-        def get(self, request):
-            pass
-
-        def post(self, request):
-            pass
-        """
-
-        response_based_on_request_method_declared = hasattr(self, request.method.lower())
-        if response_based_on_request_method_declared:
-            response_func = getattr(self, request.method.lower())
-            return response_func(request)
-
         return self.render(request)
