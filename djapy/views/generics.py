@@ -29,7 +29,7 @@ class DjapyView(DjapyBaseView, ABC):
     def get_queryset(self, request):
         pass
 
-    def jsonify(self, queryset):
+    def __jsonify__(self, queryset):
         return DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode).result_data()
 
     def render(self, request):
@@ -46,7 +46,7 @@ class DjapyView(DjapyBaseView, ABC):
         if not queryset:
             raise Exception('The get_queryset() method is returning None')
 
-        return JsonResponse(self.jsonify(queryset))
+        return JsonResponse(self.__jsonify__(queryset))
 
     def __render__(self, request):
         self.request = request
