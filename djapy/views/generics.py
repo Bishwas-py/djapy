@@ -21,7 +21,7 @@ class DjapyBaseView(ABC):
 class DjapyView(DjapyBaseView, ABC):
     request = None
     model_fields = None
-    node_bounded_mode: str = "__strict__"
+    exclude_null_fields: bool = False
 
     def __init__(self):
         check_model_fields(self.model_fields)
@@ -30,7 +30,8 @@ class DjapyView(DjapyBaseView, ABC):
         pass
 
     def __jsonify__(self, queryset):
-        return DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode).result_data()
+        return DjapyModelJsonMapper(queryset, self.model_fields,
+                                    exclude_null_fields=self.exclude_null_fields).result_data()
 
     def render(self, request):
         """

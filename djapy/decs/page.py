@@ -2,6 +2,7 @@ from functools import wraps
 
 import django.core.handlers.wsgi
 from django.core.paginator import EmptyPage, Paginator, PageNotAnInteger
+from django.db.models import QuerySet
 
 from djapy.decs.wrappers import object_to_json_node
 from djapy.parser.models_parser import models_get_data, check_model_fields
@@ -35,6 +36,27 @@ def paginator_parser(fields: list[str] | str = "__all__", exclude_null_fields=Tr
     return n
 
 
+def get_paginated_data(queryset: QuerySet, page: int, page_size: int | str = 10):
+    if type(page_size) == str:
+        if page_size == 'all':
+            return queryset.all()
+        elif page_size.isdigit():
+            page_size = int(page_size)
+        else:
+            page_size = 10
+
+    paginator = Paginator(queryset, page_size)  # Create paginator with todos and specify number of todos per page
+
+    try:
+        page_data = paginator.page(page)
+    except PageNotAnInteger:  # If page is not an integer, deliver first page
+        page_data = paginator.page(1)
+    except EmptyPage:  # If page is out of range (e.g. 9999), deliver last page of results
+        page_data = paginator.page(paginator.num_pages)
+
+    return page_data
+
+
 def djapy_paginator(fields: list[str] | str, exclude_null_fields=True):
     if not callable(fields):
         check_model_fields(fields)
@@ -48,26 +70,8 @@ def djapy_paginator(fields: list[str] | str, exclude_null_fields=True):
 
             # Get the queryset from the original function
             queryset = view_func(request, *args, **kwargs)
-
-            if type(page_size) == str:
-                if page_size == 'all':
-                    return queryset.all()
-                elif page_size.isdigit():
-                    page_size = int(page_size)
-                else:
-                    page_size = 10
-
-            paginator = Paginator(queryset,
-                                  page_size)  # Create paginator with todos and specify number of todos per page
-
-            try:
-                page_data = paginator.page(page)
-            except PageNotAnInteger:  # If page is not an integer, deliver first page
-                page_data = paginator.page(1)
-            except EmptyPage:  # If page is out of range (e.g. 9999), deliver last page of results
-                page_data = paginator.page(paginator.num_pages)
-
-            return paginator_parser_func(page_data)(request, *args, **kwargs)
+            paginated_data = get_paginated_data(queryset, page, page_size)
+            return paginator_parser_func(paginated_data)(request, *args, **kwargs)
 
         return _wrapped_view
 

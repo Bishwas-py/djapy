@@ -2,9 +2,7 @@ from typing import TypedDict, Unpack
 
 
 class JsonNodeParamsPacked(TypedDict):
-    excluded_error: str
-    only_included_error: str
-    is_strictly_bounded: str
+    exclude_null_fields: bool
 
 
 class NodeToModelParamsPacked(TypedDict):

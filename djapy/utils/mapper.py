@@ -9,14 +9,14 @@ import djapy.utils.types
 
 class DjapyModelJsonMapper:
     GLOBAL_FIELDS = defaults.GLOBAL_FIELDS
-    __IS_STRICTLY_BOUNDED = False
+    __EXCLUDE_NULL_FIELDS = False
     __OPEN_MODE = '__open__'
 
     def __init__(self, model_objects, model_fields: str | list | tuple[str, list],
                  **kwargs: "djapy.utils.types.JsonNodeParams") -> None:
         self.model_objects = model_objects
         self.model_fields = model_fields
-        self.is_strictly_bounded = kwargs.get('is_strictly_bounded', self.__IS_STRICTLY_BOUNDED)
+        self.exclude_null_fields = kwargs.get('exclude_null_fields', self.__EXCLUDE_NULL_FIELDS)
 
     def get_model_object_name(self):
         if isinstance(self.model_objects, models.Model):
@@ -27,7 +27,7 @@ class DjapyModelJsonMapper:
             return "Unknown Model Object"
 
     def result_data(self):
-        return models_get_data(self.model_objects, self.model_fields, self.is_strictly_bounded)
+        return models_get_data(self.model_objects, self.model_fields, self.exclude_null_fields)
 
     def nodify(self) -> JsonResponse:
         return JsonResponse(self.result_data(), safe=False)
