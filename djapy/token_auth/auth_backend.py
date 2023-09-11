@@ -1,4 +1,4 @@
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 
 from .models import AuthToken
 from ..exceptions import AuthBackendException
@@ -8,6 +8,7 @@ class TokenAuth:
     def authenticate(self, request):
         authorization_token = request.headers.get('Authorization')
         if not authorization_token:
+            logout(request)
             return
 
         authorization_token = authorization_token.replace('Token', '').strip()
