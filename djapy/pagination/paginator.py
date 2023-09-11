@@ -1,4 +1,4 @@
-from djapy.decs.page import paginator_parser, get_paginated_data
+from djapy.pagination.dec import paginator_parser, get_paginated_data
 import djapy.utils.mapper as djapy_mapper
 
 
@@ -9,7 +9,6 @@ class NumberPaginator:
     def get_paginator_parser_func(self):
         model_fields = getattr(self, 'model_fields')
         exclude_null_fields = getattr(self, 'exclude_null_fields')
-        print(model_fields, exclude_null_fields)
         return paginator_parser(model_fields, exclude_null_fields)
 
     def get_paginate_by(self, request):
