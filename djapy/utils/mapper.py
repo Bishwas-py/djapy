@@ -26,9 +26,11 @@ class DjapyModelJsonMapper:
         else:
             return "Unknown Model Object"
 
+    def result_data(self):
+        return models_get_data(self.model_objects, self.model_fields, self.is_strictly_bounded)
+
     def nodify(self) -> JsonResponse:
-        result_data = models_get_data(self.model_objects, self.model_fields, self.is_strictly_bounded)
-        return JsonResponse(result_data, safe=False)
+        return JsonResponse(self.result_data(), safe=False)
 
 
 class DjapyObjectJsonMapper:
