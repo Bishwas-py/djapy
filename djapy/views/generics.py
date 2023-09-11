@@ -1,5 +1,7 @@
 from abc import abstractmethod, ABC
 
+from django.http import JsonResponse
+
 from djapy.parser.models_parser import check_model_fields
 from djapy.utils.mapper import DjapyModelJsonMapper
 
@@ -17,6 +19,7 @@ class DjapyBaseView(ABC):
 
 
 class DjapyView(DjapyBaseView, ABC):
+    request = None
     model_fields = None
     node_bounded_mode: str = "__strict__"
 
@@ -26,15 +29,27 @@ class DjapyView(DjapyBaseView, ABC):
     def get_queryset(self, request):
         pass
 
+    def jsonify(self, queryset):
+        return DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode).result_data()
+
     def render(self, request):
+        """
+        Other classes and mixins can override this render method for additional functionalities
+        """
+
+        has_super_render = hasattr(super(), 'render')
+        if has_super_render:
+            super_render = getattr(super(), 'render')
+            return super_render(request)
+
         queryset = self.get_queryset(request)
         if not queryset:
             raise Exception('The get_queryset() method is returning None')
 
-        json_node = DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
-        return json_node.nodify()
+        return JsonResponse(self.jsonify(queryset))
 
     def __render__(self, request):
+        self.request = request
         """
         Check if the developer has declared a custom response based on request method.
         For example:
