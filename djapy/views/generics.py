@@ -2,6 +2,7 @@ from abc import abstractmethod, ABC
 from types import NoneType
 
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from djapy.parser.models_parser import check_model_fields
 from djapy.utils.mapper import DjapyModelJsonMapper
@@ -84,6 +85,7 @@ class DjapyView(DjapyBaseView, ABC):
 
         return JsonResponse(self.__jsonify__(queryset))
 
+    @csrf_exempt
     def __render__(self, request):
         self.request = request
         return self.render(request)
