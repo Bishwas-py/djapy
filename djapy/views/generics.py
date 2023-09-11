@@ -24,7 +24,8 @@ class DjapyView(DjapyBaseView, ABC):
     exclude_null_fields: bool = False
 
     def __init__(self):
-        check_model_fields(self.model_fields)
+        if self.model_fields:
+            check_model_fields(self.model_fields)
 
     def get_queryset(self, request):
         pass
@@ -32,6 +33,9 @@ class DjapyView(DjapyBaseView, ABC):
     def __jsonify__(self, queryset):
         return DjapyModelJsonMapper(queryset, self.model_fields,
                                     exclude_null_fields=self.exclude_null_fields).result_data()
+
+    def get_data(self, request):
+        pass
 
     def render(self, request):
         """
@@ -42,6 +46,10 @@ class DjapyView(DjapyBaseView, ABC):
         if has_super_render:
             super_render = getattr(super(), 'render')
             return super_render(request)
+
+        has_data = self.get_data(request)
+        if has_data:
+            return JsonResponse(self.get_data(request), safe=False)
 
         queryset = self.get_queryset(request)
         if not queryset:
