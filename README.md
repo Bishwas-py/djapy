@@ -14,6 +14,9 @@ pip install djapy
 from django.views.decorators.csrf import csrf_exempt
 
 from djapy import djapy_view, model_to_json_node, node_to_json_response
+from djapy.mixins.permissions import LoginRequiredMixin
+from djapy.views.generics import DjapyView
+
 from moko.models import Todo
 
 
@@ -37,6 +40,24 @@ def moko(request):
 @model_to_json_node(['id', 'username'])
 def moko_user(request):
     return request.user
+
+
+
+
+class ExampleAPIView(DjapyView):
+    model_fields = '__all__'
+
+    def get_queryset(self, request):
+        model = Todo.objects.all()
+        return model
+
+
+class ProtectedAPIView(LoginRequiredMixin, DjapyView):
+    model_fields = '__all__'
+
+    def get_queryset(self, request):
+        model = Todo.objects.all()
+        return model
 ```
 
 Create RESTful APIs with Django Framework, without writing serializers, views, urls, etc. Or without bu11shi**s.
