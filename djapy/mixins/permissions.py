@@ -36,7 +36,7 @@ class LoginRequiredMixin(PermissionMixin):
     login_required_data: Optional[str] = None
     login_required_extra: Optional[str] = None
 
-    def has_permission(self, request) -> bool:
+    def has_permission(self, request):
         return request.user.is_authenticated
 
     def get_login_required_status(self, request):
