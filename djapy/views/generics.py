@@ -23,12 +23,14 @@ class DjapyView(DjapyBaseView, ABC):
     def __init__(self):
         check_model_fields(self.model_fields)
 
-    @abstractmethod
     def get_queryset(self, request):
         pass
 
     def render(self, request):
         queryset = self.get_queryset(request)
+        if not queryset:
+            raise Exception('The get_queryset() method is returning None')
+
         json_node = DjapyModelJsonMapper(queryset, self.model_fields, node_bounded_mode=self.node_bounded_mode)
         return json_node.nodify()
 
