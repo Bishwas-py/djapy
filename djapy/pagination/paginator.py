@@ -20,7 +20,8 @@ class NumberPaginator:
 
         # Manipulate queryset here
 
-        jsonify = getattr(self, 'jsonify')
+        # Get jsonify from DjapyView
+        jsonify = getattr(self, '__jsonify__')
         data = jsonify(queryset)
 
         response = {
