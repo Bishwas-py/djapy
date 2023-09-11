@@ -1,0 +1,2 @@
+class AuthBackendException(Exception):
+    pass
