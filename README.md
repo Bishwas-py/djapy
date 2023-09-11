@@ -42,8 +42,6 @@ def moko_user(request):
     return request.user
 
 
-
-
 class ExampleAPIView(DjapyView):
     model_fields = '__all__'
 
