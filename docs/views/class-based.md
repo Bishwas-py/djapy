@@ -1,29 +1,41 @@
+# Djapy using class based views
+
+It's easy to create REST API with Djapy using class based views. With Djapy, you don't
+need to write your serializer.
+
+## Quick API example
+
+Here's how you can make your API endpoint from the model.
+
 ```python
 from djapy.views.generics import DjapyView
-from djapy.mixins.csrf import CSRFExempt
-from djapy.mixins.permissions import LoginRequiredMixin
-from djapy.pagination.paginator import NumberPaginator
 from moco.models import Blog
 
 
-class ExampleAPIView2(DjapyView):
+class BlogListView(DjapyView):
     model_fields = '__all__'
 
     def get_queryset(self, request):
         model = Blog.objects.all()
         return model
 
+```
 
-class ExampleAPIView3(DjapyView, NumberPaginator):
-    model_fields = '__all__'
-    paginate_by = 10
+You can also specify your fields like this `model_fields = ['pk', 'date_created', 'title', 'content']` .
+The `get_queryset` methods expects the QuerySet object.
 
-    def get_queryset(self, request):
-        model = Blog.objects.all()
-        return model
+## Want to separate method for GET/POST request?
+
+Djapy supports Django's like separate `get`, `post` methods. If you want `update`, `path` or any other method,
+you can also write it like this `def requestMethodName(self, request)`.
+
+```python
+from django.http import JsonResponse
+from djapy.views.generics import DjapyView
 
 
-class ExampleAPIView(CSRFExempt, DjapyView):
+class ExampleAPIView(DjapyView):
+    
     def get(self, request):
         return {
             'name': 'Djapy on GET'
@@ -35,11 +47,34 @@ class ExampleAPIView(CSRFExempt, DjapyView):
         }
 
 
+class CreateAPIView(DjapyView):
+    def post(self, request):
+        # perform 
+        
+        return JsonResponse(data={
+            'status': 'success'
+        }, status=201)
+```
+
+## Protect your API view?
+Djapy by default provides LoginRequiredMixin, AllowSuperuserMixin.
+Here's how you can only allow your API access to the logged-in users.
+Keep LoginRequiredMixin always at the beginning.
+
+```python
+from djapy.views.generics import DjapyView
+from djapy.mixins.permissions import LoginRequiredMixin
+
+from moco.models import Blog
+
 class ProtectedAPIView(LoginRequiredMixin, DjapyView):
     model_fields = '__all__'
 
     def get_queryset(self, request):
         model = Blog.objects.get_queryset()
         return model
-
 ```
+
+If you need to manage more permission and controls, 
+you can extend the PermissionMixin class from `djapy.mixins.permission.PermissionMixin` class to protect your view.
+
