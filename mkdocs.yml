@@ -50,3 +50,10 @@ extra:
 
 copyright: |
   &copy; 2023 <a href="https://github.com/bishwas-py/djapy" target="_blank" rel="noopener" title="Djapy">Djapy</a>, MIT License
+
+nav:
+  - Introduction: index.md
+  - Getting Started: getting-started.md
+  - Data Input: data-input.md
+  - Authentication: auth.md
+  - Pagination: pagination.md
