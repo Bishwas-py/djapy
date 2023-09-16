@@ -86,4 +86,4 @@ Now, go to `http://localhost:8000/` to see the API in action.
 
 ## What's next?
 
-You can read the [API Reference](api-reference.md) to learn more about the API.
+You can continue reading the documentation, [data and queries handlers...](data-input.md)
