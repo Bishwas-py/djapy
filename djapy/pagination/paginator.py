@@ -16,6 +16,7 @@ class NumberPaginator:
         page_size = request.GET.get('page_size', self.page_size)
         return page, page_size
 
+
     def render(self, request, *args, **kwargs):
         # Call render method if it has the same `render` superclass
 
