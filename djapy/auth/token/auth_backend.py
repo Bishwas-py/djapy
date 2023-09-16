@@ -1,5 +1,5 @@
-from ..auth.backends import BaseAuthentication
-from ..exceptions import AuthBackendException
+from djapy.auth.backends import BaseAuthentication
+from djapy.exceptions import AuthBackendException
 from .models import AuthToken
 
 
@@ -16,4 +16,3 @@ class TokenAuth(BaseAuthentication):
             return auth_token.user
         except AuthToken.DoesNotExist:
             raise AuthBackendException('Invalid auth token')
-

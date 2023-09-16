@@ -9,7 +9,7 @@ Here's how you can make your API endpoint from the model.
 
 ```python
 from djapy.views.generics import DjapyView
-from moco.models import Blog
+from your_app_name.models import Blog
 
 
 class BlogListView(DjapyView):
@@ -35,7 +35,7 @@ from djapy.views.generics import DjapyView
 
 
 class ExampleAPIView(DjapyView):
-    
+
     def get(self, request):
         return {
             'name': 'Djapy on GET'
@@ -50,7 +50,7 @@ class ExampleAPIView(DjapyView):
 class CreateAPIView(DjapyView):
     def post(self, request):
         # perform 
-        
+
         return JsonResponse(data={
             'status': 'success'
         }, status=201)
@@ -63,9 +63,9 @@ Keep LoginRequiredMixin always at the beginning.
 
 ```python
 from djapy.views.generics import DjapyView
-from djapy.views.mixins.permissions import LoginRequiredMixin
+from djapy.mixins.permissions import LoginRequiredMixin
 
-from moco.models import Blog
+from your_app_name.models import Blog
 
 
 class ProtectedAPIView(LoginRequiredMixin, DjapyView):

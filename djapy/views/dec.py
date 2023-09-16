@@ -1,4 +1,4 @@
-from djapy.decs.wrappers import node_to_json_response, model_to_json_node, method_to_view
+from djapy.wrappers.dec import node_to_json_response, model_to_json_node, method_to_view
 
 
 def merge_decorators_with_args(decorator_args):

@@ -9,8 +9,8 @@ To implement the pagination, you need to declare the `get_queryset` method.
 Use the `NumberPaginator` class.
 
 ```python
-from djapy.pagination.paginator import NumberPaginator
-from djapy.views.generics import DjapyView
+from djapy.pagination import NumberPaginator
+from djapy.views import DjapyView
 
 from moco.models import Blog
 

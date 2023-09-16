@@ -4,7 +4,7 @@ import django.core.handlers.wsgi
 from django.core.paginator import EmptyPage, Paginator, PageNotAnInteger
 from django.db.models import QuerySet
 
-from djapy.decs.wrappers import object_to_json_node
+from djapy.wrappers.dec import object_to_json_node
 from djapy.utils.models_parser import models_get_data, check_model_fields
 
 

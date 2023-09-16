@@ -1,6 +1,6 @@
 # Getting started
 
-I assume you have Django and it's son `Djapy` installed already. And you have created a project
+I assume you have Django, and it's son `Djapy` installed already. And you have created a project
 using `django-admin startproject <project_name>`.
 
 ## Writing your first API
@@ -33,8 +33,8 @@ Now, go to `views.py` and add the following code:
 ```python
 from django.views.decorators.csrf import csrf_exempt
 
-from djapy.decs import djapy_model_view
-from djapy.decs.auth import djapy_login_required
+from djapy.views.dec import djapy_model_view
+from djapy.auth.dec import djapy_login_required
 from djapy.data.dec import input_required
 from djapy.pagination.dec import djapy_paginator
 from .models import Todo

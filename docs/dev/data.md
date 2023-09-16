@@ -20,7 +20,8 @@ It contains the `input_required` and `field_required` decorators.
 The `input_required` decorator is used in following way:
 
 ```python
-from djapy.data.dec import input_required
+from djapy.data import input_required
+
 
 @input_required(['data', 'data1', 'data2'], ['query', 'query1', 'query2'])
 def my_view(request, data, query):

@@ -17,9 +17,9 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from djapy.decs import djapy_model_view, node_to_json_response
-from djapy.decs.auth import djapy_login_required
+from djapy.auth.dec import djapy_login_required
 from djapy.data.dec import field_required, input_required
-from djapy.decs.page import djapy_paginator
+from djapy.decs import djapy_paginator
 from .models import Todo
 
 

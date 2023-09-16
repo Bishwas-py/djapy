@@ -6,7 +6,7 @@ of data to another specific type of data.
 ## @model_to_json_node
 
 ```python
-from djapy.decs.wrappers import model_to_json_node
+from djapy.wrappers.dec import model_to_json_node
 ```
 
 This decorator convert any model returned by the `view_fuction` to 
@@ -49,7 +49,7 @@ JSON response, you have to use `node_to_json_response` for as a final decorator.
 ## @node_to_json_response
 
 ```python
-from djapy.decs.wrappers import node_to_json_response
+from djapy.wrappers.dec import node_to_json_response
 ```
 
 This decorator is used as final decorator to convert `JSON node` to actual JSON Response.
@@ -94,7 +94,7 @@ the serialized data possible.
 ## @object_to_json_node
 
 ```python
-from djapy.decs.wrappers import object_to_json_node
+from djapy.wrappers.dec import object_to_json_node
 ```
 
 This decorator is used to convert any object to JSON node. It's not only for model

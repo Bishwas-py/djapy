@@ -9,7 +9,7 @@ sent by the client.
 ## @input_required
 
 ```python
-from djapy.data.dec import input_required
+from djapy.data import input_required
 ```
 
 This decorator accepts two types of inputs, data (payload)
@@ -50,7 +50,7 @@ you won't be able to get them via `data.data_name` or `query.query_name`.
 ## @field_required
 
 ```python
-from djapy.data.dec import field_required
+from djapy.data import field_required
 ```
 
 This decorator might be one of my fav input decorator, as it supports typing.
