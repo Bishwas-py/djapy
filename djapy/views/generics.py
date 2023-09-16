@@ -6,7 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-from djapy.parser.models_parser import check_model_fields
+from djapy.utils.models_parser import check_model_fields
 from djapy.utils.mapper import DjapyModelJsonMapper
 
 

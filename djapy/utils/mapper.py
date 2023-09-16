@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.http import JsonResponse
 
-from djapy.parser.models_parser import models_get_data
+from djapy.utils.models_parser import models_get_data
 from djapy.utils import defaults
 import djapy.utils.types
 

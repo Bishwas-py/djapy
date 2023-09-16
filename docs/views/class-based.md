@@ -63,9 +63,10 @@ Keep LoginRequiredMixin always at the beginning.
 
 ```python
 from djapy.views.generics import DjapyView
-from djapy.mixins.permissions import LoginRequiredMixin
+from djapy.views.mixins.permissions import LoginRequiredMixin
 
 from moco.models import Blog
+
 
 class ProtectedAPIView(LoginRequiredMixin, DjapyView):
     model_fields = '__all__'

@@ -91,4 +91,38 @@ That's it.
 `node_to_json_response` returns a `JsonResponse`'s object after all execution. This make
 the serialized data possible.
 
+## @object_to_json_node
 
+```python
+from djapy.decs.wrappers import object_to_json_node
+```
+
+This decorator is used to convert any object to JSON node. It's not only for model
+objects, but also for any object. Let it be a `dict` or a class object.
+
+```python
+@object_to_json_node(['title', 'is_completed'])
+def your_view_func(request):
+    your_object = {
+        'title': 'Todo title',
+        'is_completed': True
+    }
+    return your_object
+
+# or
+
+class Todo:
+    title: str
+    is_completed: bool
+
+@object_to_json_node(['title', 'is_completed'])
+def your_view_func(request):
+    your_object = Todo()
+    your_object.title = 'Todo title'
+    your_object.is_completed = True
+    return your_object
+```
+
+### Action flow
+
+`object_to_json_node` returns `DjapyObjectJsonMapper`'s object after all execution.

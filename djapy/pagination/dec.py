@@ -5,7 +5,7 @@ from django.core.paginator import EmptyPage, Paginator, PageNotAnInteger
 from django.db.models import QuerySet
 
 from djapy.decs.wrappers import object_to_json_node
-from djapy.parser.models_parser import models_get_data, check_model_fields
+from djapy.utils.models_parser import models_get_data, check_model_fields
 
 
 def previous_page_number_parser(page_obj):
