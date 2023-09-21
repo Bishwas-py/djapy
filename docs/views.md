@@ -13,7 +13,7 @@ from your_app_name.models import Blog
 
 
 class BlogListView(DjapyView):
-    model_fields = '__all__'
+    model_fields = ['pk', 'title', 'description'] # Use '__all__' to include all fields
 
     def get_queryset(self, request):
         model = Blog.objects.all()
@@ -55,26 +55,3 @@ class CreateAPIView(DjapyView):
             'status': 'success'
         }, status=201)
 ```
-
-## Protect your API view?
-Djapy by default provides LoginRequiredMixin, AllowSuperuserMixin.
-Here's how you can only allow your API access to the logged-in users.
-Keep LoginRequiredMixin always at the beginning.
-
-```python
-from djapy.views.generics import DjapyView
-from djapy.mixins.permissions import LoginRequiredMixin
-
-from your_app_name.models import Blog
-
-
-class ProtectedAPIView(LoginRequiredMixin, DjapyView):
-    model_fields = '__all__'
-
-    def get_queryset(self, request):
-        model = Blog.objects.get_queryset()
-        return model
-```
-
-If you need to manage more permission and controls, 
-you can extend the PermissionMixin class from `djapy.mixins.permission.PermissionMixin` class to protect your view.
