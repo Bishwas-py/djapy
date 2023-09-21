@@ -61,4 +61,4 @@ nav:
   - Authentication: auth.md
   - Pagination: pagination.md
   - Wrappers: wrappers.md
-
+  - Views: views.md
