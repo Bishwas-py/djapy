@@ -22,9 +22,17 @@ def next_page_number_parser(page_obj):
         return None
 
 
-def paginator_parser(fields: list[str] | str = "__all__", exclude_null_fields=True):
+def paginator_parser(fields: list[str] | str = "__all__", exclude_null_fields=True, object_parser=None):
+    """
+    :param fields: The fields to parse.
+    :param exclude_null_fields: If True, the null fields will be excluded from the result.
+    :param object_parser: The object parser, parses the object fields in the object list of the paginator.
+    :return:
+    """
+    if object_parser is None:
+        object_parser = {}
     field_parser = {
-        'object_list': (models_get_data, {'model_fields': fields}),
+        'object_list': (models_get_data, {'model_fields': fields, 'object_parser': object_parser}),
         'previous_page_number': previous_page_number_parser,
         'next_page_number': next_page_number_parser
     }
@@ -57,10 +65,12 @@ def get_paginated_data(queryset: QuerySet, page: int, page_size: int | str = 10)
     return page_data
 
 
-def djapy_paginator(fields: list[str] | str, exclude_null_fields=True):
+def djapy_paginator(fields: list[str] | str, exclude_null_fields=True, object_parser=None):
+    if object_parser is None:
+        object_parser = {}
     if not callable(fields):
         check_model_fields(fields)
-    paginator_parser_func = paginator_parser(fields, exclude_null_fields)
+    paginator_parser_func = paginator_parser(fields, exclude_null_fields, object_parser)
 
     def decorator(view_func):
         @wraps(view_func)

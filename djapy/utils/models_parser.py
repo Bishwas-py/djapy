@@ -50,20 +50,32 @@ def model_get_fields(model_objects: models.QuerySet | models.Model,
 
 def models_get_data(model_objects: models.QuerySet | models.Model,
                     model_fields: list | str,
-                    is_strictly_bounded: bool = False):
+                    is_strictly_bounded: bool = False,
+                    object_parser=None):
+    if object_parser is None:
+        object_parser = {}
     final_fields = model_get_fields(model_objects, model_fields, is_strictly_bounded)
+
     if isinstance(model_objects, models.Model):
-        result = {
-            field: getattr(model_objects, field, None) for field in final_fields
-        }
+        result = {}
+        for field in final_fields:
+            if field in object_parser:
+                result[field] = object_parser[field](model_objects)
+            else:
+                result[field] = getattr(model_objects, field, None)
         return result
+
     elif isinstance(model_objects, models.QuerySet):
-        result = [
-            {
-                field: getattr(obj, field, None) for field in final_fields
-            }
-            for obj in model_objects
-        ]
+        result = []
+        for obj in model_objects:
+            temp = {}
+            for field in final_fields:
+                if field in object_parser:
+                    temp[field] = object_parser[field](obj)
+                else:
+                    temp[field] = getattr(obj, field, None)
+            result.append(temp)
         return result
+
     else:
         return {}
