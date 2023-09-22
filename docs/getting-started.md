@@ -85,7 +85,7 @@ class TodoView(DjapyView):
             'message': 'Hello from POST request'
         }
 ```
-
+To learn more, see Djapy [class based view](views.md) section.
 
 Now, go to `urls.py` and add the following code:
 
