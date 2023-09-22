@@ -5,13 +5,16 @@ from types import UnionType, NoneType
 
 from django.http import HttpRequest, JsonResponse
 
-
 from djapy.data.fields import get_field_object, get_request_value, get_request_data
 from djapy.data.mapper import DataWrapper, QueryWrapper
 from djapy.utils.response_format import create_response
 
 
-def input_required(payloads: str | list | list[tuple[str, type]], queries: str | list[str] | None = None):
+def input_required(
+        payloads: str | list | list[tuple[str, type]],
+        queries: str | list[str] | None = None,
+        allow_empty_payloads: bool = False,
+        allow_empty_queries: bool = False):
     """
     This decorator is used to validate the input fields of a view function, and attach the validated input fields to
     the view function.
@@ -22,6 +25,8 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
 
     :param payloads: A list of tuples of the form (str, type) where str is the name of the input field and type is the
     :param queries: A list of strings that are the names of the query fields.
+    :param allow_empty_payloads: If True, the decorator will not check if the input fields are empty.
+    :param allow_empty_queries: If True, the decorator will not check if the query fields are empty.
     :return: A JsonResponse if the input fields are invalid, else the view function.
     """
 
@@ -59,7 +64,8 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
             errors = []
 
             for query_field_name in queries:
-                if query_field_name not in request.GET:
+                if query_field_name not in request.GET or (
+                        not allow_empty_queries and request.GET[query_field_name] == ''):
                     errors.append(create_response(
                         'failed', 'query_not_found', f'Query `{query_field_name}` is required',
                         extras={'field_name': query_field_name, 'field_type': 'query'}
@@ -68,7 +74,8 @@ def input_required(payloads: str | list | list[tuple[str, type]], queries: str |
                     query.add_query(query_field_name, request.GET[query_field_name])
 
             for field_name, field_type in payloads:
-                if field_name not in request_data:
+                if field_name not in request_data or (
+                        not allow_empty_payloads and request_data[field_name] == ''):
                     errors.append(create_response(
                         'failed', 'payload_not_found', f'Payload `{field_name}` is required',
                         extras={'field_name': field_name, 'field_type': 'payload'}
