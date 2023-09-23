@@ -130,11 +130,11 @@ def field_required(view_func):
         errors = []
 
         for query_name, query_type in query_items:
-            is_optional_input = (isinstance(query_type, UnionType) and
+            is_optional_query = (isinstance(query_type, UnionType) and
                                  any([issubclass(q, NoneType) for q in query_type.__args__]))
 
             query_value = get_request_value(request.GET, query_name, query_type)
-            if query_value is None and not is_optional_input:
+            if query_value is None and not is_optional_query:
                 errors.append(create_response(
                     'failed', 'query_not_found', f'Query `{query_name}` is required',
                     extras={'field_name': query_name, 'field_type': 'query'}
@@ -143,8 +143,11 @@ def field_required(view_func):
                 setattr(new_query_object, query_name, query_value)
 
         for data_name, data_type in data_items:
+            is_optional_data = (isinstance(data_type, UnionType) and
+                                any([issubclass(d, NoneType) for d in data_type.__args__]))
             data_value = get_request_value(request_data, data_name, data_type)
-            if data_value is None:
+
+            if data_value is None and not is_optional_data:
                 errors.append(create_response(
                     'failed', 'data_not_found', f'Data `{data_name}` is required',
                     extras={'field_name': data_name, 'field_type': 'data'}
