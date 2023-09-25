@@ -141,6 +141,8 @@ def catch_errors(view_func: callable) -> callable:
     def wrapper(request, *args, **kwargs):
         try:
             view_response = view_func(request, *args, **kwargs)
+            if isinstance(view_response, dict):
+                return JsonResponse(view_response, status=200)
             return view_response
         except Exception as exception:
             error, display_message = log_exception(request, exception)
