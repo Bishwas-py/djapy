@@ -13,3 +13,4 @@ def is_owned_by(model_object: models.Model, user: User, field_name='user'):
     if hasattr(model_object, field_name):
         return getattr(model_object, field_name) == user
     return False
+

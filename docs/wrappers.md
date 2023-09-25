@@ -29,14 +29,14 @@ On the both upper returned model queryset or model objects, you can
 convert them to JSON node, by using `@model_to_json_node`.
 
 ```python
-@model_to_json_node(['title', 'is_completed'], is_strictly_bounded=False)
+@model_to_json_node(['title', 'is_completed'], include_global_field=False)
 def your_view_func(request):
     your_object_or_query = Todo.objects.all() # or one object
     retrun your_object_or_query
 ```
 
 The returned data for queryset will be a list, and for model object, it'll
-be a JSON object. `is_strictly_bounded` if set to True, it removes all
+be a JSON object. `include_global_field` if set to True, it removes all
 the `null` or `None` value from the JSON node.
 
 `model_to_json_node` is not alone compatible for converting JSON node to
@@ -56,7 +56,7 @@ This decorator is used as final decorator to convert `JSON node` to actual JSON 
 
 ```python
 @node_to_json_response
-@model_to_json_node(['title', 'is_completed'], is_strictly_bounded=False)
+@model_to_json_node(['title', 'is_completed'], include_global_field=False)
 def your_view_func(request):
     your_object_or_query = Todo.objects.all() # or one object
     retrun your_object_or_query

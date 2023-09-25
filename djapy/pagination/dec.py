@@ -22,9 +22,13 @@ def next_page_number_parser(page_obj):
         return None
 
 
-def paginator_parser(fields: list[str] | str = "__all__", exclude_null_fields=True, object_parser=None):
+def paginator_parser(
+        model_fields: list | str = "__all__",
+        exclude_null_fields: bool = False,
+        object_parser: dict = None
+):
     """
-    :param fields: The fields to parse.
+    :param model_fields: The fields to parse.
     :param exclude_null_fields: If True, the null fields will be excluded from the result.
     :param object_parser: The object parser, parses the object fields in the object list of the paginator.
     :return:
@@ -32,13 +36,16 @@ def paginator_parser(fields: list[str] | str = "__all__", exclude_null_fields=Tr
     if object_parser is None:
         object_parser = {}
     field_parser = {
-        'object_list': (models_get_data, {'model_fields': fields, 'object_parser': object_parser}),
+        'object_list': (models_get_data, dict(
+            model_fields=model_fields,
+            exclude_null_fields=exclude_null_fields,
+            object_parser=object_parser)),
         'previous_page_number': previous_page_number_parser,
         'next_page_number': next_page_number_parser
     }
     n = object_to_json_node(
-        ['number', 'object_list', 'has_next', 'has_previous', 'previous_page_number', 'next_page_number'],
-        field_parser,
+        object_fields=['number', 'object_list', 'has_next', 'has_previous', 'previous_page_number', 'next_page_number'],
+        field_parser=field_parser,
         exclude_null_fields=exclude_null_fields
     )
     return n
@@ -68,6 +75,7 @@ def get_paginated_data(queryset: QuerySet, page: int, page_size: int | str = 10)
 def djapy_paginator(fields: list[str] | str, exclude_null_fields=True, object_parser=None):
     if object_parser is None:
         object_parser = {}
+
     if not callable(fields):
         check_model_fields(fields)
     paginator_parser_func = paginator_parser(fields, exclude_null_fields, object_parser)
@@ -79,9 +87,11 @@ def djapy_paginator(fields: list[str] | str, exclude_null_fields=True, object_pa
             page = request.GET.get('page', 1)
 
             # Get the queryset from the original function
-            queryset = view_func(request, *args, **kwargs)
-            paginated_data = get_paginated_data(queryset, page, page_size)
-            return paginator_parser_func(paginated_data)(request, *args, **kwargs)
+            view_func_or_queryset = view_func(request, *args, **kwargs)
+            if isinstance(view_func_or_queryset, QuerySet):
+                paginated_data = get_paginated_data(view_func_or_queryset, page, page_size)
+                return paginator_parser_func(paginated_data)(request, *args, **kwargs)
+            return view_func_or_queryset
 
         return _wrapped_view
 

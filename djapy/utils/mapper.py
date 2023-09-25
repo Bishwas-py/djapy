@@ -8,15 +8,22 @@ import djapy.utils.types
 
 
 class DjapyModelJsonMapper:
-    GLOBAL_FIELDS = defaults.GLOBAL_FIELDS
-    __EXCLUDE_NULL_FIELDS = False
-    __OPEN_MODE = '__open__'
+    def __init__(self,
+                 model_objects,
+                 model_fields: list | str,
+                 exclude_null_fields: bool = False,
+                 include_global_field: bool = True,
+                 object_parser: "djapy.utils.types.FieldParserType" = None) -> None:
+        if isinstance(model_objects, tuple) and len(model_objects) == 2:
+            self.model_objects, self.status_code = model_objects
+        else:
+            self.model_objects = model_objects
+            self.status_code = 200
 
-    def __init__(self, model_objects, model_fields: str | list | tuple[str, list],
-                 **kwargs: "djapy.utils.types.JsonNodeParams") -> None:
-        self.model_objects = model_objects
         self.model_fields = model_fields
-        self.exclude_null_fields = kwargs.get('exclude_null_fields', self.__EXCLUDE_NULL_FIELDS)
+        self.include_global_field = include_global_field
+        self.exclude_null_fields = exclude_null_fields
+        self.object_parser = object_parser
 
     def get_model_object_name(self):
         if isinstance(self.model_objects, models.Model):
@@ -27,17 +34,28 @@ class DjapyModelJsonMapper:
             return "Unknown Model Object"
 
     def result_data(self):
-        return models_get_data(self.model_objects, self.model_fields, self.exclude_null_fields)
+        return models_get_data(
+            model_objects=self.model_objects,
+            model_fields=self.model_fields,
+            include_global_field=self.include_global_field,
+            exclude_null_fields=self.exclude_null_fields,
+            object_parser=self.object_parser
+        )
 
     def nodify(self) -> JsonResponse:
-        return JsonResponse(self.result_data(), safe=False)
+        return JsonResponse(self.result_data(), safe=False, status=self.status_code)
 
 
 class DjapyObjectJsonMapper:
     def __init__(self, raw_object, object_fields: set | list | str,
                  exclude_null_fields: bool = False,
                  field_parser: "djapy.utils.types.FieldParserType" = None) -> None:
-        self.raw_object = raw_object
+        if isinstance(raw_object, tuple) and len(raw_object) == 2:
+            self.raw_object, self.status_code = raw_object
+        else:
+            self.raw_object = raw_object
+            self.status_code = 200
+
         self.object_fields = object_fields
         self.exclude_null_fields = exclude_null_fields
         self.field_parser = field_parser
@@ -81,6 +99,6 @@ class DjapyObjectJsonMapper:
                 if not self.exclude_null_fields or object_field_value is not None:
                     result_data[field_name] = object_field_value
 
-            return JsonResponse(result_data)
+            return JsonResponse(result_data, safe=False, status=self.status_code)
         else:
             raise ValueError("Invalid input type. Must be an object.")
