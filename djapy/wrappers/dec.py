@@ -25,6 +25,8 @@ def node_to_json_response(view_func: callable) -> callable:
         json_node = view_func(*args, **kwargs)
         if isinstance(json_node, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return json_node.nodify()
+        if isinstance(json_node, dict):
+            return JsonResponse(json_node, safe=False)
         return json_node
 
     return wrapper
@@ -193,4 +195,5 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
         if isinstance(view_response, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return view_response.nodify()
         return view_response
+
     return wrapper
