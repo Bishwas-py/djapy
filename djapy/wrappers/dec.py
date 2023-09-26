@@ -1,5 +1,3 @@
-import logging
-import traceback
 import types
 from functools import wraps
 
@@ -16,6 +14,7 @@ from djapy.utils.response_format import create_response
 def node_to_json_response(view_func: callable) -> callable:
     """
     Use this decorator to return a JsonResponse from a function that returns a JsonNodify object.
+    Make sure the object received by this is DjapyModelJsonMapper, DjapyObjectJsonMapper.
 
     :param view_func: A function that returns a JsonNodify object.
     :return: A JsonResponse.
@@ -25,8 +24,6 @@ def node_to_json_response(view_func: callable) -> callable:
         json_node = view_func(*args, **kwargs)
         if isinstance(json_node, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return json_node.nodify()
-        if isinstance(json_node, dict):
-            return JsonResponse(json_node, safe=False)
         return json_node
 
     return wrapper
@@ -96,7 +93,11 @@ def object_to_json_node(
                 raw_object = view_func
 
             if isinstance(raw_object, (JsonResponse, DjapyObjectJsonMapper, DjapyModelJsonMapper)):
+                # check if the object is already a JsonResponse or DjapyObjectJsonMapper or DjapyModelJsonMapper object
+                # if it is, return it as it is
                 return raw_object
+
+            # as a last resort, check if the object is an object, which is true most of the time
             if isinstance(raw_object, object):
                 return DjapyObjectJsonMapper(
                     raw_object, object_fields,
@@ -126,6 +127,7 @@ def method_to_view(view_func: callable) -> callable:
                 return view_or_model()
             elif isinstance(view_or_model, types.FunctionType):  # views are functions
                 return view_or_model(request, *args, **kwargs)
+        return view_or_model
 
     return wrapper
 
@@ -197,5 +199,18 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
         if isinstance(view_response, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return view_response.nodify()
         return view_response
+
+    return wrapper
+
+
+def handle_error(view_func: callable):
+    """
+    Use this decorator to handle errors from a view function. Is a combination of `catch_errors` and
+    `error_to_json_response`.
+    """
+    @catch_errors
+    @error_to_json_response
+    def wrapper(request, *args, **kwargs):
+        return view_func(request, *args, **kwargs)
 
     return wrapper

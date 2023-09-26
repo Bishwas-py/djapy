@@ -67,8 +67,11 @@ def input_required(
                 if query_field_name not in request.GET or (
                         not allow_empty_queries and request.GET[query_field_name] == ''):
                     errors.append(create_response(
-                        'failed', 'query_not_found', f'Query `{query_field_name}` is required',
-                        extras={'field_name': query_field_name, 'field_type': 'query'}
+                        'failed',
+                        'query_not_found',
+                        f'Query `{query_field_name}` is required',
+                        field_name=query_field_name,
+                        field_type='query'
                     ))
                 else:
                     query.add_query(query_field_name, request.GET[query_field_name])
@@ -78,12 +81,15 @@ def input_required(
                         not allow_empty_payloads and request_data[field_name] == ''):
                     errors.append(create_response(
                         'failed', 'payload_not_found', f'Payload `{field_name}` is required',
-                        extras={'field_name': field_name, 'field_type': 'payload'}
+                        field_name=field_name,
+                        field_type='payload'
                     ))
                 elif not isinstance(request_data[field_name], field_type):
                     errors.append(create_response(
-                        "failed", "invalid_type", f"{field_name} must be of type {field_type}",
-                        extras={'field_name': field_name, 'field_type': 'payload'}
+                        "failed", "invalid_type",
+                        f"{field_name} must be of type {field_type}",
+                        field_name=field_name,
+                        field_type='payload'
                     ))
                 else:
                     data.add_data(field_name, request_data[field_name])
@@ -136,8 +142,10 @@ def field_required(view_func):
             query_value = get_request_value(request.GET, query_name, query_type)
             if query_value is None and not is_optional_query:
                 errors.append(create_response(
-                    'failed', 'query_not_found', f'Query `{query_name}` is required',
-                    extras={'field_name': query_name, 'field_type': 'query'}
+                    'failed', 'query_not_found',
+                    f'Query `{query_name}` is required',
+                    field_name=query_name,
+                    field_type='query'
                 ))
             else:
                 setattr(new_query_object, query_name, query_value)
@@ -149,8 +157,10 @@ def field_required(view_func):
 
             if data_value is None and not is_optional_data:
                 errors.append(create_response(
-                    'failed', 'data_not_found', f'Data `{data_name}` is required',
-                    extras={'field_name': data_name, 'field_type': 'data'}
+                    'failed', 'data_not_found',
+                    f'Data `{data_name}` is required',
+                    field_name=data_name,
+                    field_type='data'
                 ))
             else:
                 setattr(new_data_object, data_name, data_value)
