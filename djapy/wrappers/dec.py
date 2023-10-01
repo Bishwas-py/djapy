@@ -209,6 +209,7 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
             return json_response
         if isinstance(view_response, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return view_response.nodify()
+
         return view_response
 
     return wrapper
