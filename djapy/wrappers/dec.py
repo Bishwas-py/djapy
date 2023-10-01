@@ -177,6 +177,7 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
         view_response = view_func(request, *args, **kwargs)
         if isinstance(view_response, JsonResponse):
             return view_response
+
         if isinstance(view_response, dict):
             status_text = view_response.get('status', None)
             alias_text = view_response.get('alias', None)
