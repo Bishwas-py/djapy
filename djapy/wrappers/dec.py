@@ -185,12 +185,16 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
             json_response = object_to_json_map.nodify()
             if auto_status_code:
                 alias_text = view_response.get('status', None)
-                if 'error' in alias_text or 'failed' in alias_text:
+                if alias_text is None:
+                    json_response.status_code = 200
+                elif 'error' in alias_text or 'failed' in alias_text:
                     json_response.status_code = 400
                 elif 'created' in alias_text:
                     json_response.status_code = 201
                 elif 'updated' in alias_text or 'success' in alias_text or 'deleted' in alias_text:
                     json_response.status_code = 200
+                elif 'no_content' in alias_text:
+                    json_response.status_code = 204
                 elif 'not_found' in alias_text:
                     json_response.status_code = 404
                 elif 'unauthorized' in alias_text or 'forbidden' in alias_text or 'not_allowed' in alias_text:
