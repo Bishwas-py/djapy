@@ -178,27 +178,34 @@ def error_to_json_response(view_func: callable, auto_status_code: bool = True) -
         if isinstance(view_response, JsonResponse):
             return view_response
         if isinstance(view_response, dict):
+            status_text = view_response.get('status', None)
+            alias_text = view_response.get('alias', None)
+
+            if status_text is None and alias_text is None:
+                return view_response
+
             object_to_json_map = DjapyObjectJsonMapper(
                 view_response,
                 object_fields=defaults.ALLOWED_ERROR_RESPONSE_FIELDS
             )
             json_response = object_to_json_map.nodify()
+
             if auto_status_code:
-                alias_text = view_response.get('status', None)
-                if alias_text is None:
-                    json_response.status_code = 200
-                elif 'error' in alias_text or 'failed' in alias_text:
+                if 'error' in status_text or 'failed' in status_text:
                     json_response.status_code = 400
-                elif 'created' in alias_text:
+                elif 'created' in status_text:
                     json_response.status_code = 201
-                elif 'updated' in alias_text or 'success' in alias_text or 'deleted' in alias_text:
+                elif 'updated' in status_text or 'success' in status_text or 'deleted' in status_text:
                     json_response.status_code = 200
-                elif 'no_content' in alias_text:
+                elif 'no_content' in status_text:
                     json_response.status_code = 204
-                elif 'not_found' in alias_text:
+                elif 'not_found' in status_text:
                     json_response.status_code = 404
-                elif 'unauthorized' in alias_text or 'forbidden' in alias_text or 'not_allowed' in alias_text:
+                elif 'unauthorized' in status_text or 'forbidden' in status_text or 'not_allowed' in status_text:
                     json_response.status_code = 401
+                elif 'server_error' in status_text:
+                    json_response.status_code = 500
+
             return json_response
         if isinstance(view_response, (DjapyModelJsonMapper, DjapyObjectJsonMapper)):
             return view_response.nodify()
