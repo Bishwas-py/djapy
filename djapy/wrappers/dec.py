@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from djapy.utils import defaults
 from djapy.utils.mapper import DjapyModelJsonMapper, DjapyObjectJsonMapper
 from djapy.utils.prepare_exception import log_exception
-from djapy.utils.response_format import create_response
+from djapy.utils.response_format import create_json
 
 
 def node_to_json_response(view_func: callable) -> callable:
@@ -148,7 +148,7 @@ def catch_errors(view_func: callable) -> callable:
             return view_response
         except Exception as exception:
             error, display_message = log_exception(request, exception)
-            error_response = create_response(
+            error_response = create_json(
                 'failed',
                 'server_error',
                 message=display_message,

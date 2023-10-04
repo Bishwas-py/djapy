@@ -7,7 +7,7 @@ from django.http import HttpRequest, JsonResponse
 
 from djapy.data.fields import get_field_object, get_request_value, get_request_data
 from djapy.data.mapper import DataWrapper, QueryWrapper
-from djapy.utils.response_format import create_response
+from djapy.utils.response_format import create_json
 
 
 def input_required(
@@ -66,7 +66,7 @@ def input_required(
             for query_field_name in queries:
                 if query_field_name not in request.GET or (
                         not allow_empty_queries and request.GET[query_field_name] == ''):
-                    errors.append(create_response(
+                    errors.append(create_json(
                         'failed',
                         'query_not_found',
                         f'Query `{query_field_name}` is required',
@@ -79,13 +79,13 @@ def input_required(
             for field_name, field_type in payloads:
                 if field_name not in request_data or (
                         not allow_empty_payloads and request_data[field_name] == ''):
-                    errors.append(create_response(
+                    errors.append(create_json(
                         'failed', 'payload_not_found', f'Payload `{field_name}` is required',
                         field_name=field_name,
                         field_type='payload'
                     ))
                 elif not isinstance(request_data[field_name], field_type):
-                    errors.append(create_response(
+                    errors.append(create_json(
                         "failed", "invalid_type",
                         f"{field_name} must be of type {field_type}",
                         field_name=field_name,
@@ -141,7 +141,7 @@ def field_required(view_func):
 
             query_value = get_request_value(request.GET, query_name, query_type)
             if query_value is None and not is_optional_query:
-                errors.append(create_response(
+                errors.append(create_json(
                     'failed', 'query_not_found',
                     f'Query `{query_name}` is required',
                     field_name=query_name,
@@ -156,7 +156,7 @@ def field_required(view_func):
             data_value = get_request_value(request_data, data_name, data_type)
 
             if data_value is None and not is_optional_data:
-                errors.append(create_response(
+                errors.append(create_json(
                     'failed', 'data_not_found',
                     f'Data `{data_name}` is required',
                     field_name=data_name,

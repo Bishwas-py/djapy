@@ -4,7 +4,7 @@ from typing import Optional
 from django.http import HttpResponse, JsonResponse
 
 from djapy.views.generics import DjapyBaseView
-from djapy.utils.response_format import create_response
+from djapy.utils.response_format import create_json
 
 
 class PermissionMixin(DjapyBaseView, ABC):
@@ -54,7 +54,7 @@ class LoginRequiredMixin(PermissionMixin):
         return self.login_required_extra
 
     def get_error_response(self, request) -> HttpResponse:
-        error_response = create_response(
+        error_response = create_json(
             self.get_login_required_status(request),
             self.get_login_required_alias(request),
             self.get_login_required_message(request),

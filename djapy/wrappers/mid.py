@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from djapy.utils.prepare_exception import log_exception
-from djapy.utils.response_format import create_response
+from djapy.utils.response_format import create_json
 
 
 class HandleErrorMiddleware:
@@ -16,7 +16,7 @@ class HandleErrorMiddleware:
 
     def process_exception(self, request, exception):
         error, display_message = log_exception(request, exception)
-        error_response = create_response(
+        error_response = create_json(
             'failed',
             'server_error',
             message=display_message,

@@ -1,4 +1,9 @@
-def create_response(
+from typing import Dict
+
+from django.http import JsonResponse
+
+
+def create_json(
         status: str,
         alias: str,
         message: str,
@@ -7,7 +12,7 @@ def create_response(
         field_name: str = None,
         field_type: str = None,
         field_value=''
-) -> dict:
+) -> JsonResponse | dict[str, str | dict]:
     """
     A utility function to create a response dictionary.
 
@@ -47,3 +52,46 @@ def create_response(
         response['field_value'] = str(field_value)
 
     return response
+
+
+def create_response(
+        status: str,
+        alias: str,
+        message: str,
+        data: dict = None,
+        extras: dict = None,
+        field_name: str = None,
+        field_type: str = None,
+        field_value='',
+        auto_status: bool = True,
+):
+    json_response = JsonResponse(
+        create_json(
+            status=status,
+            alias=alias,
+            message=message,
+            data=data,
+            extras=extras,
+            field_name=field_name,
+            field_type=field_type,
+            field_value=field_value,
+        )
+        , safe=False, status=200)
+
+    if auto_status:
+        if 'error' in status or 'failed' in status:
+            json_response.status_code = 400
+        elif 'created' in status:
+            json_response.status_code = 201
+        elif 'updated' in status or 'success' in status or 'deleted' in status:
+            json_response.status_code = 200
+        elif 'no_content' in status:
+            json_response.status_code = 204
+        elif 'not_found' in status:
+            json_response.status_code = 404
+        elif 'unauthorized' in status or 'forbidden' in status or 'not_allowed' in status:
+            json_response.status_code = 401
+        elif 'server_error' in status:
+            json_response.status_code = 500
+
+    return json_response
