@@ -95,7 +95,11 @@ def input_required(
                     data.add_data(field_name, request_data[field_name])
 
             if errors:
-                return JsonResponse(errors, status=400, safe=False)
+                return JsonResponse({
+                    'errors': errors,
+                    'status': 'failed',
+                    'alias': 'invalid_input_fields',
+                }, status=400, safe=False)
 
             params = list(inspect.signature(view_func).parameters.keys())
 

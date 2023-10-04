@@ -78,7 +78,7 @@ def create_response(
         )
         , safe=False, status=200)
 
-    if auto_status:
+    if auto_status and status != 'success':
         if 'server_error' in status:
             json_response.status_code = 500
         elif 'error' in status or 'failed' in status:
