@@ -61,7 +61,7 @@ def input_required(
 
             data = DataWrapper()
             query = QueryWrapper()
-            errors = []
+            errors = {}
 
             for query_field_name in queries:
                 if query_field_name not in request.GET or (
