@@ -79,7 +79,9 @@ def create_response(
         , safe=False, status=200)
 
     if auto_status:
-        if 'error' in status or 'failed' in status:
+        if 'server_error' in status:
+            json_response.status_code = 500
+        elif 'error' in status or 'failed' in status:
             json_response.status_code = 400
         elif 'created' in status:
             json_response.status_code = 201
@@ -91,7 +93,5 @@ def create_response(
             json_response.status_code = 404
         elif 'unauthorized' in status or 'forbidden' in status or 'not_allowed' in status:
             json_response.status_code = 401
-        elif 'server_error' in status:
-            json_response.status_code = 500
 
     return json_response
