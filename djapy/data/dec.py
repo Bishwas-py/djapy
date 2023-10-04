@@ -66,31 +66,31 @@ def input_required(
             for query_field_name in queries:
                 if query_field_name not in request.GET or (
                         not allow_empty_queries and request.GET[query_field_name] == ''):
-                    errors.append(create_json(
+                    errors[query_field_name] = create_json(
                         'failed',
                         'query_not_found',
                         f'Query `{query_field_name}` is required',
                         field_name=query_field_name,
                         field_type='query'
-                    ))
+                    )
                 else:
                     query.add_query(query_field_name, request.GET[query_field_name])
 
             for field_name, field_type in payloads:
                 if field_name not in request_data or (
                         not allow_empty_payloads and request_data[field_name] == ''):
-                    errors.append(create_json(
+                    errors[field_name] = create_json(
                         'failed', 'payload_not_found', f'Payload `{field_name}` is required',
                         field_name=field_name,
                         field_type='payload'
-                    ))
+                    )
                 elif not isinstance(request_data[field_name], field_type):
-                    errors.append(create_json(
+                    errors[field_name] = create_json(
                         "failed", "invalid_type",
                         f"{field_name} must be of type {field_type}",
                         field_name=field_name,
                         field_type='payload'
-                    ))
+                    )
                 else:
                     data.add_data(field_name, request_data[field_name])
 
@@ -98,7 +98,7 @@ def input_required(
                 return JsonResponse({
                     'errors': errors,
                     'status': 'failed',
-                    'alias': 'invalid_input_fields',
+                    'alias': 'invalid_input_fields'
                 }, status=400, safe=False)
 
             params = list(inspect.signature(view_func).parameters.keys())
@@ -137,7 +137,7 @@ def field_required(view_func):
         request_data = get_request_data(request)
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
-        errors = []
+        errors = {}
 
         for query_name, query_type in query_items:
             is_optional_query = (isinstance(query_type, UnionType) and
@@ -145,12 +145,12 @@ def field_required(view_func):
 
             query_value = get_request_value(request.GET, query_name, query_type)
             if query_value is None and not is_optional_query:
-                errors.append(create_json(
+                errors[query_name] = create_json(
                     'failed', 'query_not_found',
                     f'Query `{query_name}` is required',
                     field_name=query_name,
                     field_type='query'
-                ))
+                )
             else:
                 setattr(new_query_object, query_name, query_value)
 
@@ -160,12 +160,12 @@ def field_required(view_func):
             data_value = get_request_value(request_data, data_name, data_type)
 
             if data_value is None and not is_optional_data:
-                errors.append(create_json(
+                errors[data_name] = create_json(
                     'failed', 'data_not_found',
                     f'Data `{data_name}` is required',
                     field_name=data_name,
                     field_type='data'
-                ))
+                )
             else:
                 setattr(new_data_object, data_name, data_value)
 
@@ -179,7 +179,11 @@ def field_required(view_func):
             kwargs['_data'] = request_data
 
         if errors:
-            return JsonResponse(errors, status=400, safe=False)
+            return JsonResponse({
+                'errors': errors,
+                'status': 'failed',
+                'alias': 'invalid_input_fields'
+            }, status=400, safe=False)
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
