@@ -72,7 +72,6 @@ def models_get_data(model_objects: models.QuerySet | models.Model,
         model_fields=model_fields,
         include_global_field=include_global_field
     )
-    print(final_fields)
 
     if isinstance(model_objects, models.Model):
         result = {}
