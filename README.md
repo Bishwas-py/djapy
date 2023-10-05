@@ -19,6 +19,22 @@ Djapy is available on PyPI, and can be installed with `pip`:
 pip install djapy
 ```
 
+## Basic Rest API
+
+```python
+from djapy.pagination.dec import djapy_paginator
+
+
+@djapy_paginator([
+    'id', 'title', 'will_be_completed_at', 'created_at',
+    'username', 'completed_at'
+])
+def todo_get(request, *args, **kwargs):
+    todos = Todo.objects.all()
+    todos = todos.filter(user=request.user).order_by('-completed_at')
+    return todos
+```
+
 ## Creating a new project
 
 To create a new project, run the following command:
