@@ -86,6 +86,10 @@ Same as `@input_required` data and queries are optional to the `view_function`.
 class Mocca:
     flavour: str
     price: int
+    coffee_type: str = 'latte'  # optional and default value
+    consumer: str | None  # optional and None by default
+    coffee_size: str | int # compulsory and dynamic type
+
 
 @field_required
 def your_view_name(request, query=Mocca):
