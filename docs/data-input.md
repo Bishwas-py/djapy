@@ -12,7 +12,7 @@ inputs can be defined as both payloads or the queries
 sent by the client.
 
 - @input_required
-- @input_required
+- @field_required
 
 ### @input_required
 
