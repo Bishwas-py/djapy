@@ -109,9 +109,11 @@ def perform_items_process(request, items, new_object: object, errors: dict, data
         item_value = get_request_value(request.GET, item_name, item_type)
         is_item_default_value_mentioned = hasattr(new_object, item_name)
         is_item_type_union = isinstance(item_type, UnionType)
+        is_any_union_none_type = is_item_type_union and any(
+            [issubclass(q, NoneType) for q in item_type.__args__])
 
         is_optional_item = (
-                is_item_type_union and any([issubclass(q, NoneType) for q in item_type.__args__]) or
+                is_any_union_none_type or
                 is_item_default_value_mentioned
                 or item_type is None
         )
