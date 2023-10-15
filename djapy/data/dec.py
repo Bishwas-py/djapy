@@ -5,7 +5,7 @@ from types import UnionType, NoneType
 
 from django.http import HttpRequest, JsonResponse
 
-from djapy.data.fields import get_field_object, get_request_value, get_request_data
+from djapy.data.fields import get_field_object, get_request_value, get_request_data, perform_items_process
 from djapy.data.mapper import DataWrapper, QueryWrapper
 from djapy.utils.response_format import create_json
 
@@ -139,35 +139,8 @@ def field_required(view_func):
         new_data_object = copy.deepcopy(data_object)
         errors = {}
 
-        for query_name, query_type in query_items:
-            is_optional_query = (isinstance(query_type, UnionType) and
-                                 any([issubclass(q, NoneType) for q in query_type.__args__]))
-
-            query_value = get_request_value(request.GET, query_name, query_type)
-            if query_value is None and not is_optional_query:
-                errors[query_name] = create_json(
-                    'failed', 'query_not_found',
-                    f'Query `{query_name}` is required',
-                    field_name=query_name,
-                    field_type='query'
-                )
-            else:
-                setattr(new_query_object, query_name, query_value)
-
-        for data_name, data_type in data_items:
-            is_optional_data = (isinstance(data_type, UnionType) and
-                                any([issubclass(d, NoneType) for d in data_type.__args__]))
-            data_value = get_request_value(request_data, data_name, data_type)
-
-            if data_value is None and not is_optional_data:
-                errors[data_name] = create_json(
-                    'failed', 'data_not_found',
-                    f'Data `{data_name}` is required',
-                    field_name=data_name,
-                    field_type='data'
-                )
-            else:
-                setattr(new_data_object, data_name, data_value)
+        perform_items_process(request, query_items, new_query_object, errors, "query")
+        perform_items_process(request, data_items, new_data_object, errors, "data")
 
         if query_class is not None:
             kwargs['query'] = new_query_object
