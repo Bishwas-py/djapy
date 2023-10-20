@@ -62,3 +62,4 @@ nav:
   - Pagination: pagination.md
   - Wrappers: wrappers.md
   - Views: views.md
+  - Middleware: middleware.md
