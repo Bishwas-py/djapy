@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from djapy.utils.prepare_exception import log_exception
 from djapy.utils.response_format import create_json
 
@@ -13,9 +13,21 @@ class HandleErrorMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
+        if response.status_code >= 400 and not isinstance(response, JsonResponse):
+            error_response = create_json(
+                'failed',
+                'u_server_error',
+                message="An error occurred while processing your request.",
+                extras={
+                    'reason': response.reason_phrase,
+                    'path': request.path,
+                }
+            )
+            return JsonResponse(error_response, status=response.status_code)
         return response
 
-    def process_exception(self, request, exception):
+    @staticmethod
+    def process_exception(request, exception):
         error, display_message = log_exception(request, exception)
         error_response = create_json(
             'failed',
