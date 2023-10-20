@@ -40,7 +40,10 @@ class UHandleErrorMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        if response.status_code >= 400 and not isinstance(response, JsonResponse):
+        user_agent = response.headers.get('User-Agent')
+        is_browser = 'Mozilla' in user_agent
+
+        if response.status_code >= 400 and not isinstance(response, JsonResponse) and not is_browser:
             error_response = create_json(
                 'failed',
                 'u_server_error',
