@@ -1,4 +1,4 @@
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from djapy.utils.prepare_exception import log_exception
 from djapy.utils.response_format import create_json
 
