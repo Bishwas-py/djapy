@@ -1,12 +1,11 @@
 import copy
 import inspect
 from functools import wraps
-from types import UnionType, NoneType
 
 from django.http import HttpRequest, JsonResponse
 
-from djapy.data.fields import get_field_object, get_request_value, get_request_data, perform_items_process
-from djapy.data.mapper import DataWrapper, QueryWrapper
+from djapy.data.fields import get_field_object, get_request_data
+from djapy.data.mapper import DataWrapper, QueryWrapper, DataItemsProcess
 from djapy.utils.response_format import create_json
 
 
@@ -138,9 +137,11 @@ def field_required(view_func):
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
         errors = {}
+        data = DataItemsProcess("data", request_data)
+        query = DataItemsProcess("query", request.GET)
 
-        perform_items_process(request, query_items, new_query_object, errors, "query")
-        perform_items_process(request, data_items, new_data_object, errors, "data")
+        data.perform_items_process(data_items, new_data_object, errors)
+        query.perform_items_process(query_items, new_query_object, errors)
 
         if query_class is not None:
             kwargs['query'] = new_query_object

@@ -1,16 +1,12 @@
 import json
-
-import json
 import dataclasses
-from types import NoneType, UnionType
+from types import NoneType
 
 from typing import Callable
 
 from django.db import models
 from django.http import QueryDict
 from django.http.multipartparser import MultiPartParser
-
-from djapy.utils.response_format import create_json
 
 
 def get_field_object(field_object_callable: Callable[[], object]) \
@@ -74,7 +70,7 @@ def get_request_value(request_data, field_name, field_type):
     return field_value
 
 
-def get_request_data(request):
+def get_request_data(request) -> QueryDict | dict:
     """
     Extracts the request data from a given HTTP request based on its content type.
 
@@ -102,30 +98,3 @@ def get_request_data(request):
     else:
         request_data = {}
     return request_data
-
-
-def perform_items_process(request, items, new_object: object, errors: dict, data_name="query"):
-    for item_name, item_type in items:
-        item_value = get_request_value(request.GET, item_name, item_type)
-        is_item_default_value_mentioned = hasattr(new_object, item_name)
-        is_item_type_union = isinstance(item_type, UnionType)
-        is_any_union_none_type = is_item_type_union and any(
-            [issubclass(q, NoneType) for q in item_type.__args__])
-
-        is_optional_item = (
-                is_any_union_none_type or
-                is_item_default_value_mentioned
-                or item_type is None
-        )
-
-        if not is_optional_item and not item_value:
-            errors[item_name] = create_json(
-                'failed', f'{data_name}_not_found',
-                f'{data_name.capitalize()} `{item_name}` is required',
-                field_name=item_name,
-                field_type=data_name
-            )
-        else:
-            if not item_value:
-                item_value = getattr(new_object, item_name, None)
-            setattr(new_object, item_name, item_value)
