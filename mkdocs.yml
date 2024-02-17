@@ -58,7 +58,6 @@ nav:
   - Introduction: index.md
   - Getting Started: getting-started.md
   - Data Input: data-input.md
-  - Authentication: auth.md
   - Pagination: pagination.md
   - Wrappers: wrappers.md
   - Views: views.md

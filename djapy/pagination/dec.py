@@ -73,6 +73,7 @@ def get_paginated_data(queryset: QuerySet, page: int, page_size: int | str = 10)
 
 
 def djapy_paginator(fields: list[str] | str, exclude_null_fields=True, object_parser=None):
+    
     if object_parser is None:
         object_parser = {}
 

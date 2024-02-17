@@ -68,25 +68,6 @@ def todo_view(request):
 
 ```
 
-If you like to use a class based view, you need to import DjapyView
-```python
-
-from djapy.views.generics import DjapyView
-
-
-class TodoView(DjapyView):
-    def get(self, request):
-        return {
-            'message': 'Hello from GET request'
-        }
-
-    def post(self, request):
-        return {
-            'message': 'Hello from POST request'
-        }
-```
-To learn more, see Djapy [class based view](views.md) section.
-
 Now, go to `urls.py` and add the following code:
 
 ```python
@@ -95,9 +76,6 @@ from .views import todo_view
 
 urlpatterns = [
     path('', todo_view, name='app-name-action'),
-    
-    # For class based view
-    path('class-example/', TodoView.as_view(), name='todo_view')
 ]
 ```
 

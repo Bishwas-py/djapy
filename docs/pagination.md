@@ -27,20 +27,3 @@ You can set `page_size` and `page` in request query params to paginate the query
 
 ## Number pagination
 Use the `NumberPaginator` class.
-
-```python
-from djapy.views.generics import DjapyView
-from djapy.pagination.paginator import NumberPaginator
-
-from moco.models import Blog
-
-
-class MyBlogsView(DjapyView, NumberPaginator):
-    model_fields = '__all__'
-    paginate_by = 10  # You can change this
-
-    def get_queryset(self, request):
-        model = Blog.objects.all()
-        return model
-```
-
