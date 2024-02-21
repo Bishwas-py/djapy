@@ -43,6 +43,13 @@ def djapify(schema_or_view_func: BaseModel | Callable | Dict[int, Type[BaseModel
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
             ) -> Callable:
+    """
+    :param schema_or_view_func: A pydantic model or a view function
+    :param login_required: A boolean to check if the view requires login
+    :param allowed_method: A string or a list of strings to check if the view allows the method
+    :return: A decorator that will return a JsonResponse with the schema validated data or a message
+    """
+
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
