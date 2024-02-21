@@ -3,15 +3,15 @@ from pydantic import field_validator
 from djapy.schema import Schema
 
 
-class Permission(Schema):
+class PermissionSchema(Schema):
     codename: str
     name: str
 
 
-class User(Schema):
+class UserSchema(Schema):
     id: int
     username: str
-    user_permissions: list[Permission]
+    user_permissions: list[PermissionSchema]
 
     @field_validator('user_permissions', mode='before')
     def validate_user_permissions(cls, value):
