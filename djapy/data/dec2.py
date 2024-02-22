@@ -1,10 +1,15 @@
+import dataclasses
 import inspect
 import json
 from functools import wraps
 from typing import Callable, Dict, Type, List, Literal
 
-from django.http import HttpRequest, JsonResponse
-from pydantic import BaseModel
+from django.http import HttpRequest, JsonResponse, HttpResponse
+from pydantic import ValidationError
+
+from djapy.data.fields import get_request_data
+from djapy.schema import Schema
+from djapy.utils.prepare_exception import log_exception
 
 SESSION_AUTH = "SESSION"
 DEFAULT_AUTH_REQUIRED_MESSAGE = {"message": "You are not logged in", "alias": "auth_required"}
@@ -13,7 +18,7 @@ ALLOW_METHODS = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEA
 DEFAULT_MESSAGE_ERROR = {"message": "Something went wrong", "alias": "server_error"}
 
 
-def make_openapi_response(schema_or_dict: BaseModel | Dict[int, BaseModel]):
+def make_openapi_response(schema_or_dict: Schema | Dict[int, Schema]):
     if isinstance(schema_or_dict, dict):
         responses = {}
         for status, schema in schema_or_dict.items():
@@ -21,7 +26,7 @@ def make_openapi_response(schema_or_dict: BaseModel | Dict[int, BaseModel]):
                 "description": "OK" if status == 200 else "Error",
                 "content": {
                     "application/json": {
-                        "schema": schema.model_json_schema() if issubclass(schema, BaseModel) else schema
+                        "schema": schema.model_json_schema() if issubclass(schema, Schema) else schema
                     }
                 }
             }
@@ -32,14 +37,27 @@ def make_openapi_response(schema_or_dict: BaseModel | Dict[int, BaseModel]):
             "content": {
                 "application/json": {
                     "schema": schema_or_dict.model_json_schema() if issubclass(schema_or_dict,
-                                                                               BaseModel) else schema_or_dict
+                                                                               Schema) else schema_or_dict
                 }
             }
         }
     }
 
 
-def djapify(schema_or_view_func: BaseModel | Callable | Dict[int, Type[BaseModel]],
+# def parse_and_return(request_data: dict, required_params: List[inspect.Parameter]) -> dict:
+#     # if required params is a class of Schema parse the request data and return the parsed data
+#
+def parse_and_return(request_data: dict, required_params: list) -> dict:
+    parsed_data = {}
+    for param in required_params:
+        # param_type = param.annotation: Schema
+        param_type = param.annotation
+        if issubclass(param_type, Schema):
+            parsed_data[param.name] = param_type.model_validate(request_data)
+    return parsed_data
+
+
+def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
             ) -> Callable:
@@ -50,7 +68,17 @@ def djapify(schema_or_view_func: BaseModel | Callable | Dict[int, Type[BaseModel
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
 
+    if not isinstance(schema_or_view_func, dict):
+        schema_or_view_func = {200: schema_or_view_func}
+
     def decorator(view_func):
+        signature = inspect.signature(view_func)
+        exclude_args = [name for name, param in signature.parameters.items() if param.kind == param.VAR_POSITIONAL]
+        exclude_kwargs = [name for name, param in signature.parameters.items() if param.kind == param.VAR_KEYWORD]
+        required_params = [param for name, param in signature.parameters.items() if
+                           param.kind == param.POSITIONAL_OR_KEYWORD and name not in [
+                               "request"] and name not in exclude_args and name not in exclude_kwargs]
+
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
             djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
@@ -65,13 +93,27 @@ def djapify(schema_or_view_func: BaseModel | Callable | Dict[int, Type[BaseModel
             elif isinstance(djapy_allowed_method, str) and request.method != djapy_allowed_method:
                 return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
+            request_data = get_request_data(request)
+            kwargs_ = parse_and_return(request_data, required_params)
 
-            func = view_func(request, *args, **kwargs)
-            if isinstance(schema_or_view_func, dict):
-                schema = schema_or_view_func.get(200, None)
-            else:
-                schema = schema_or_view_func
-            return JsonResponse(schema.model_validate(func), status=200)
+            try:
+                func = view_func(request, *args, **kwargs_, **kwargs)
+            except Exception as e:
+                error_message, display_message = log_exception(request, e)
+                return JsonResponse(
+                    {"message": display_message, "error_message": error_message, "alias": "server_error"},
+                    status=500)
+
+            schema = schema_or_view_func.get(200)
+            if issubclass(schema, Schema):
+                try:
+                    validated_data = schema.model_validate(func)
+                    return JsonResponse(validated_data.dict(), status=200)
+                except ValidationError as value_error:
+                    return HttpResponse(content=value_error.json(), content_type="application/json", status=400)
+
+            if callable(schema):
+                return JsonResponse(schema(func), status=200, safe=False)
 
         if inspect.isclass(schema_or_view_func) or isinstance(schema_or_view_func, dict):
             _wrapped_view.djapy = True

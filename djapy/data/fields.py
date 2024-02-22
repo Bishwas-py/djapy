@@ -87,13 +87,16 @@ def get_request_data(request) -> QueryDict | dict:
 
     content_type = request.META.get('CONTENT_TYPE', '')
     if content_type.startswith('multipart'):
+        print("MULTIPART")
         request_data, _multi_value_dict = MultiPartParser(
             request.META, request,
             request.upload_handlers
         ).parse()
     elif content_type == "application/json":
+        print("JSON")
         request_data = json.loads(request.body)
     elif request.body:
+        print("REQUEST BODY")
         request_data = QueryDict(request.body)
     else:
         request_data = {}

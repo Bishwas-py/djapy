@@ -14,6 +14,7 @@ class UserSchema(Schema):
     user_permissions: list[PermissionSchema]
     first_name: str
     last_name: str
+    class_x: str
 
     @field_validator('user_permissions', mode='before')
     def validate_user_permissions(cls, value):
