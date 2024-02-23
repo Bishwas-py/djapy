@@ -6,9 +6,9 @@ from typing import Callable, Dict, Type, List
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
 
-from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
+from djapy.v2.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from djapy.data.parser import extract_and_validate_request_params
+from djapy.v2.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 import logging
 
