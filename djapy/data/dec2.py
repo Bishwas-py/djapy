@@ -26,6 +26,16 @@ def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
     return required_params
 
 
+_errorhandler_functions = []
+try:
+    _imported_errorhandler = importlib.import_module("djapy_ext.errorhandler")
+    for f in dir(_imported_errorhandler):
+        if f.startswith('handler_'):
+            _errorhandler_functions.append(getattr(_imported_errorhandler, f))
+except Exception as e:
+    _imported_errorhandler = None
+
+
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
@@ -39,15 +49,11 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
     :param openapi_tags: A list of strings to tag the view in the openapi schema
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
+    global _errorhandler_functions
 
     if not isinstance(schema_or_view_func, dict):
         schema_or_view_func = {200: schema_or_view_func}
 
-    try:
-        _imported_errorhandler = importlib.import_module("djapy_ext.errorhandler")
-    except Exception as e:
-        _imported_errorhandler = None
-    print(getattr(_imported_errorhandler, 'handler'))
     def decorator(view_func):
         required_params = get_required_params(view_func)
 
@@ -67,26 +73,27 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                                     status=405)
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params)
-            except ValidationError as e:
-                # if getattr(_imported_errorhandler, 'handler') and callable(_)
-
-                return HttpResponse(content=e.json(), content_type="application/json", status=400)
-
-            try:
                 func = view_func(request, *args, **_data_kwargs, **kwargs)
-            except Exception as e:
-                error_message, display_message = log_exception(request, e)
-                return JsonResponse(
-                    {"message": display_message, "error_message": error_message, "alias": "server_error"},
-                    status=500)
+
+            except Exception as exception:
+                for _errorhandler_function in _errorhandler_functions:
+                    exception_param = inspect.signature(_errorhandler_function).parameters['exception']
+                    if type(exception) == exception_param.annotation:
+                        _data_from_error = _errorhandler_function(request, exception=exception)
+                        print('_data_from_error', _data_from_error)
+                        if _data_from_error and isinstance(_data_from_error, dict):
+                            return JsonResponse(_data_from_error, status=400)
+                return exception
+            except ValidationError as exception:
+                return HttpResponse(content=exception.json(), content_type="application/json", status=400)
 
             schema = schema_or_view_func.get(200)
             if issubclass(schema, Schema):
                 try:
                     validated_data = schema.model_validate(func)
                     return JsonResponse(validated_data.dict(), status=200)
-                except ValidationError as e:
-                    return HttpResponse(content=e.json(), content_type="application/json", status=400)
+                except ValidationError as exception:
+                    return HttpResponse(content=exception.json(), content_type="application/json", status=400)
 
             if callable(schema):
                 return JsonResponse(schema(func), status=200, safe=False)
