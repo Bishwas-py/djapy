@@ -1,12 +1,14 @@
 import importlib
 import inspect
+import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
 
-from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
+from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
+    DEFAULT_MESSAGE_ERROR
 from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
@@ -85,14 +87,22 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
 
             except Exception as exception:
                 for _errorhandler_function in _errorhandler_functions:
-                    exception_param = inspect.signature(_errorhandler_function).parameters['exception']
+                    _function_signature = inspect.signature(_errorhandler_function)
+                    exception_param = _function_signature.parameters['exception']
                     if exception.__class__ == exception_param.annotation:
                         _data_from_error = _errorhandler_function(request, exception=exception)
                         if _data_from_error and isinstance(_data_from_error, dict):
-                            return JsonResponse(_data_from_error, status=400)
-                return exception
-            except ValidationError as exception:
-                return HttpResponse(content=exception.json(), content_type="application/json", status=400)
+                            try:
+                                return JsonResponse(_data_from_error, status=400)
+                            except TypeError as e:
+                                logging.exception(e)
+                                return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
+
+                if isinstance(exception, ValidationError):
+                    return HttpResponse(content=exception.json(), content_type="application/json", status=400)
+
+                logging.exception(exception)
+                return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
             schema = schema_or_view_func.get(200)
             if issubclass(schema, Schema):
