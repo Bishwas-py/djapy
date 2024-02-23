@@ -17,48 +17,6 @@ ALLOW_METHODS = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEA
 DEFAULT_MESSAGE_ERROR = {"message": "Something went wrong", "alias": "server_error"}
 
 
-def make_openapi_response(schema_or_dict: Schema | Dict[int, Schema]):
-    if isinstance(schema_or_dict, dict):
-        responses = {}
-        for status, schema in schema_or_dict.items():
-            responses[str(status)] = {
-                "description": "OK" if status == 200 else "Error",
-                "content": {
-                    "application/json": {
-                        "schema": schema.model_json_schema() if issubclass(schema, Schema) else schema
-                    }
-                }
-            }
-        return responses
-    return {
-        "200": {
-            "description": "OK",
-            "content": {
-                "application/json": {
-                    "schema": schema_or_dict.model_json_schema() if issubclass(schema_or_dict,
-                                                                               Schema) else schema_or_dict
-                }
-            }
-        }
-    }
-
-
-def extract_and_validate_request_params(request, required_params: list) -> dict:
-    parsed_data = {}
-    for param in required_params:
-        param_type = param.annotation
-        if issubclass(param_type, Schema):
-            data_dict = {}
-            if getattr(param_type.Config, "is_query", False):
-                parsed_data[param.name] = param_type(**request.GET.dict())
-                continue
-            if request.POST:
-                data_dict.update(request.POST.dict())
-            elif request.body:
-                data_dict.update(json.loads(request.body))
-            parsed_data[param.name] = param_type(**data_dict)
-    return parsed_data
-
 
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
@@ -97,7 +55,7 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
             try:
-                kwargs_ = parse_and_return(request, required_params)
+                kwargs_ = extract_and_validate_request_params(request, required_params)
             except ValidationError as e:
                 return HttpResponse(content=e.json(), content_type="application/json", status=400)
 
