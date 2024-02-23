@@ -88,9 +88,9 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             except Exception as exception:
                 for _errorhandler_function in _errorhandler_functions:
                     _function_signature = inspect.signature(_errorhandler_function)
-                    exception_param = _function_signature.parameters['exception']
+                    exception_param = _function_signature.parameters.get('exception')
                     if exception.__class__ == exception_param.annotation:
-                        _data_from_error = _errorhandler_function(request, exception=exception)
+                        _data_from_error = _errorhandler_function(request, exception)
                         if _data_from_error and isinstance(_data_from_error, dict):
                             try:
                                 return JsonResponse(_data_from_error, status=400)
