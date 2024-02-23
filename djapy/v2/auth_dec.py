@@ -5,7 +5,7 @@ from typing import Dict, Callable, List
 
 from django.http import HttpRequest, JsonResponse
 
-from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
+from djapy.v2.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 
 
 def djapy_login_required(view_func_or_message_dict: Callable | Dict[str, str] = None) -> Callable:

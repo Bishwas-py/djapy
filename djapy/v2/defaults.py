@@ -1,4 +1,7 @@
-ALL_FIELDS = '__all__'
-GLOBAL_FIELDS = ['id', 'created_at', 'updated_at']
+from typing import Literal
 
-ALLOWED_ERROR_RESPONSE_FIELDS = ['status', 'alias', 'message', 'data', 'field_name', 'field_type']
+SESSION_AUTH = "SESSION"
+DEFAULT_AUTH_REQUIRED_MESSAGE = {"message": "You are not logged in", "alias": "auth_required"}
+DEFAULT_METHOD_NOT_ALLOWED_MESSAGE = {"message": "Method not allowed", "alias": "method_not_allowed"}
+ALLOW_METHODS = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"]
+DEFAULT_MESSAGE_ERROR = {"message": "Something went wrong", "alias": "server_error"}
