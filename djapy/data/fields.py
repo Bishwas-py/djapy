@@ -70,7 +70,7 @@ def get_request_value(request_data, field_name, field_type):
     return field_value
 
 
-def get_request_data(request) -> QueryDict | dict:
+def parse_to_dict(request) -> QueryDict | dict:
     """
     Extracts the request data from a given HTTP request based on its content type.
 
@@ -79,7 +79,7 @@ def get_request_data(request) -> QueryDict | dict:
     :param request: The HttpRequest object to fetch data from.
     :type request: django.http.HttpRequest
 
-    :return: The request data in dictionary format. If there's no request data, an empty dictionary is returned.
+    :return: The request data in dictionary formarequest_datat. If there's no request data, an empty dictionary is returned.
     :rtype: dict
 
     The method fetching the body of the request, checking its 'CONTENT_TYPE' field, and then uses either the MultiPartParser for 'multipart' types, json.loads for 'application/json' or QueryDict for other types.

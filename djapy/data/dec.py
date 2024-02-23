@@ -4,7 +4,7 @@ from functools import wraps
 
 from django.http import HttpRequest, JsonResponse
 
-from djapy.data.fields import get_field_object, get_request_data
+from djapy.data.fields import get_field_object, parse_to_dict
 from djapy.data.mapper import DataWrapper, QueryWrapper, DataItemsProcess
 from djapy.utils.response_format import create_json
 
@@ -56,7 +56,7 @@ def input_required(
 
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
-            request_data = get_request_data(request)
+            request_data = parse_to_dict(request)
 
             data = DataWrapper()
             query = QueryWrapper()
@@ -133,7 +133,7 @@ def field_required(view_func):
 
     @wraps(view_func)
     def _wrapped_view(request: HttpRequest, *args, **kwargs):
-        request_data = get_request_data(request)
+        request_data = parse_to_dict(request)
         new_query_object = copy.deepcopy(query_object)
         new_data_object = copy.deepcopy(data_object)
         errors = {}

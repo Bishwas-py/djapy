@@ -4,10 +4,9 @@ import json
 from functools import wraps
 from typing import Callable, Dict, Type, List, Literal
 
-from django.http import HttpRequest, JsonResponse, HttpResponse
+from django.http import HttpRequest, JsonResponse, HttpResponse, QueryDict
 from pydantic import ValidationError
 
-from djapy.data.fields import get_request_data
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
 
@@ -44,16 +43,20 @@ def make_openapi_response(schema_or_dict: Schema | Dict[int, Schema]):
     }
 
 
-# def parse_and_return(request_data: dict, required_params: List[inspect.Parameter]) -> dict:
-#     # if required params is a class of Schema parse the request data and return the parsed data
-#
-def parse_and_return(request_data: dict, required_params: list) -> dict:
+def extract_and_validate_request_params(request, required_params: list) -> dict:
     parsed_data = {}
     for param in required_params:
-        # param_type = param.annotation: Schema
         param_type = param.annotation
         if issubclass(param_type, Schema):
-            parsed_data[param.name] = param_type.model_validate(request_data)
+            data_dict = {}
+            if getattr(param_type.Config, "is_query", False):
+                parsed_data[param.name] = param_type(**request.GET.dict())
+                continue
+            if request.POST:
+                data_dict.update(request.POST.dict())
+            elif request.body:
+                data_dict.update(json.loads(request.body))
+            parsed_data[param.name] = param_type(**data_dict)
     return parsed_data
 
 
@@ -93,8 +96,10 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             elif isinstance(djapy_allowed_method, str) and request.method != djapy_allowed_method:
                 return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
-            request_data = get_request_data(request)
-            kwargs_ = parse_and_return(request_data, required_params)
+            try:
+                kwargs_ = parse_and_return(request, required_params)
+            except ValidationError as e:
+                return HttpResponse(content=e.json(), content_type="application/json", status=400)
 
             try:
                 func = view_func(request, *args, **kwargs_, **kwargs)
@@ -109,8 +114,8 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 try:
                     validated_data = schema.model_validate(func)
                     return JsonResponse(validated_data.dict(), status=200)
-                except ValidationError as value_error:
-                    return HttpResponse(content=value_error.json(), content_type="application/json", status=400)
+                except ValidationError as e:
+                    return HttpResponse(content=e.json(), content_type="application/json", status=400)
 
             if callable(schema):
                 return JsonResponse(schema(func), status=200, safe=False)
