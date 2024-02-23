@@ -10,8 +10,11 @@ from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DE
 from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
+import logging
 
 __all__ = ['djapify']
+
+MAX_HANDLER_COUNT = 1
 
 
 def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
@@ -29,6 +32,11 @@ def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
 _errorhandler_functions = []
 try:
     _imported_errorhandler = importlib.import_module("djapy_ext.errorhandler")
+    _all_handlers = dir(_imported_errorhandler)
+    if len(_all_handlers) > MAX_HANDLER_COUNT:
+        logging.warning(
+            f"Errorhandler module should not contain more than {MAX_HANDLER_COUNT} handlers. "
+            f"We discourage using more than {MAX_HANDLER_COUNT} handlers in errorhandler module.")
     for f in dir(_imported_errorhandler):
         if f.startswith('handler_'):
             _errorhandler_functions.append(getattr(_imported_errorhandler, f))
@@ -78,9 +86,8 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             except Exception as exception:
                 for _errorhandler_function in _errorhandler_functions:
                     exception_param = inspect.signature(_errorhandler_function).parameters['exception']
-                    if type(exception) == exception_param.annotation:
+                    if exception.__class__ == exception_param.annotation:
                         _data_from_error = _errorhandler_function(request, exception=exception)
-                        print('_data_from_error', _data_from_error)
                         if _data_from_error and isinstance(_data_from_error, dict):
                             return JsonResponse(_data_from_error, status=400)
                 return exception
