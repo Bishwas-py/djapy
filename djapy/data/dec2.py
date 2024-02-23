@@ -1,21 +1,15 @@
-import dataclasses
 import inspect
-import json
 from functools import wraps
-from typing import Callable, Dict, Type, List, Literal
+from typing import Callable, Dict, Type, List
 
 from django.http import HttpRequest, JsonResponse, HttpResponse, QueryDict
 from pydantic import ValidationError
 
+from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
+from djapy.data.openapi import make_openapi_response
+from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
-
-SESSION_AUTH = "SESSION"
-DEFAULT_AUTH_REQUIRED_MESSAGE = {"message": "You are not logged in", "alias": "auth_required"}
-DEFAULT_METHOD_NOT_ALLOWED_MESSAGE = {"message": "Method not allowed", "alias": "method_not_allowed"}
-ALLOW_METHODS = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE", "CONNECT"]
-DEFAULT_MESSAGE_ERROR = {"message": "Something went wrong", "alias": "server_error"}
-
 
 
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
@@ -87,53 +81,6 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
         if allowed_method:
             setattr(_wrapped_view, 'djapy_allowed_method', allowed_method)
 
-        return _wrapped_view
-
-    return decorator
-
-
-def djapy_login_required(view_func_or_message_dict: Callable | Dict[str, str] = None) -> Callable:
-    message_response = DEFAULT_AUTH_REQUIRED_MESSAGE
-    if isinstance(view_func_or_message_dict, dict):
-        message_response = view_func_or_message_dict
-
-    try:
-        json.dumps(message_response)
-    except TypeError as e:
-        raise TypeError(f"Invalid message_response: {message_response}") from e
-
-    def decorator(view_func):
-        @wraps(view_func)
-        def _wrapped_view(request: HttpRequest, *args, **kwargs):
-            return view_func(request, *args, **kwargs)
-
-        _wrapped_view.djapy_has_login_required = True
-        _wrapped_view.djapy_message_response = message_response
-        return _wrapped_view
-
-    if inspect.isfunction(view_func_or_message_dict):
-        return decorator(view_func_or_message_dict)
-
-    return decorator
-
-
-def djapy_method(allowed_method_or_list: ALLOW_METHODS | List[ALLOW_METHODS],
-                 message_response: Dict[str, str] = None) -> Callable:
-    message_response = message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
-    try:
-        json.dumps(message_response)
-    except TypeError as e:
-        raise TypeError(f"Invalid message_response: {message_response}") from e
-
-    def decorator(view_func):
-        @wraps(view_func)
-        def _wrapped_view(request: HttpRequest, *args, **kwargs):
-            if request.method not in allowed_method_or_list:
-                return JsonResponse(message_response, status=405)
-            return view_func(request, *args, **kwargs)
-
-        _wrapped_view.djapy_allowed_method = allowed_method_or_list
-        _wrapped_view.djapy_message_response = message_response
         return _wrapped_view
 
     return decorator
