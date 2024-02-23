@@ -46,6 +46,21 @@ except Exception as e:
     _imported_errorhandler = None
 
 
+def handle_error(request, exception):
+    for _errorhandler_function in _errorhandler_functions:
+        _function_signature = inspect.signature(_errorhandler_function)
+        exception_param = _function_signature.parameters.get('exception')
+        if exception.__class__ == exception_param.annotation:
+            _data_from_error = _errorhandler_function(request, exception)
+            if _data_from_error and isinstance(_data_from_error, dict):
+                try:
+                    return JsonResponse(_data_from_error, status=400)
+                except TypeError as e:
+                    logging.exception(e)
+                    return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
+    return None
+
+
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
@@ -84,19 +99,10 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params)
                 func = view_func(request, *args, **_data_kwargs, **kwargs)
-
             except Exception as exception:
-                for _errorhandler_function in _errorhandler_functions:
-                    _function_signature = inspect.signature(_errorhandler_function)
-                    exception_param = _function_signature.parameters.get('exception')
-                    if exception.__class__ == exception_param.annotation:
-                        _data_from_error = _errorhandler_function(request, exception)
-                        if _data_from_error and isinstance(_data_from_error, dict):
-                            try:
-                                return JsonResponse(_data_from_error, status=400)
-                            except TypeError as e:
-                                logging.exception(e)
-                                return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
+                error_response = handle_error(request, exception)
+                if error_response:
+                    return error_response
 
                 if isinstance(exception, ValidationError):
                     return HttpResponse(content=exception.json(), content_type="application/json", status=400)
