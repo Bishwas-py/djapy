@@ -1,6 +1,5 @@
 import importlib
 import inspect
-import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
@@ -11,7 +10,6 @@ from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DE
     DEFAULT_MESSAGE_ERROR
 from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
-from djapy.utils.prepare_exception import log_exception
 import logging
 
 __all__ = ['djapify']
