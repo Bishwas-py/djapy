@@ -1,7 +1,5 @@
 import json
 
-from pydantic import ValidationError
-
 from djapy.schema import Schema
 
 
@@ -17,13 +15,12 @@ def extract_and_validate_request_params(request, required_params: list) -> dict:
         param_type = param.annotation
         if issubclass(param_type, Schema):
             data_dict = {}
-            is_query = getattr(param_type.Config, "is_query", False)
-            if is_query:
-                data_dict.update(**request.GET.dict())
+            if getattr(param_type.Config, "is_query", False):
+                parsed_data[param.name] = param_type(**request.GET.dict())
+                continue
             if request.POST:
                 data_dict.update(request.POST.dict())
             elif request.body:
                 data_dict.update(json.loads(request.body))
             parsed_data[param.name] = param_type(**data_dict)
-
     return parsed_data

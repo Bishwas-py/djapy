@@ -1,3 +1,4 @@
+import importlib
 import inspect
 from functools import wraps
 from typing import Callable, Dict, Type, List
@@ -9,6 +10,20 @@ from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DE
 from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
+
+__all__ = ['djapify']
+
+
+def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
+    """Extract required parameters from a function signature, skipping the first one."""
+    signature = inspect.signature(view_func)
+
+    required_params = []
+    for index, (name, param) in enumerate(signature.parameters.items()):
+        if param.kind == param.POSITIONAL_OR_KEYWORD and index != 0:
+            required_params.append(param)
+
+    return required_params
 
 
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
@@ -28,13 +43,13 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
     if not isinstance(schema_or_view_func, dict):
         schema_or_view_func = {200: schema_or_view_func}
 
+    try:
+        _imported_errorhandler = importlib.import_module("djapy_ext.errorhandler")
+    except Exception as e:
+        _imported_errorhandler = None
+    print(getattr(_imported_errorhandler, 'handler'))
     def decorator(view_func):
-        signature = inspect.signature(view_func)
-        exclude_args = [name for name, param in signature.parameters.items() if param.kind == param.VAR_POSITIONAL]
-        exclude_kwargs = [name for name, param in signature.parameters.items() if param.kind == param.VAR_KEYWORD]
-        required_params = [param for name, param in signature.parameters.items() if
-                           param.kind == param.POSITIONAL_OR_KEYWORD and name not in [
-                               "request"] and name not in exclude_args and name not in exclude_kwargs]
+        required_params = get_required_params(view_func)
 
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
@@ -51,12 +66,14 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
             try:
-                kwargs_ = extract_and_validate_request_params(request, required_params)
+                _data_kwargs = extract_and_validate_request_params(request, required_params)
             except ValidationError as e:
+                # if getattr(_imported_errorhandler, 'handler') and callable(_)
+
                 return HttpResponse(content=e.json(), content_type="application/json", status=400)
 
             try:
-                func = view_func(request, *args, **kwargs_, **kwargs)
+                func = view_func(request, *args, **_data_kwargs, **kwargs)
             except Exception as e:
                 error_message, display_message = log_exception(request, e)
                 return JsonResponse(
