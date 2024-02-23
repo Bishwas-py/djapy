@@ -3,7 +3,8 @@ from typing import Dict
 from djapy.schema import Schema
 
 
-def make_openapi_response(schema_or_dict: Schema | Dict[int, Schema]):
+def make_openapi_response(schema_or_dict: Schema | Dict[int, Schema],
+                          openapi_tags: list[str] = None) -> dict:
     if isinstance(schema_or_dict, dict):
         responses = {}
         for status, schema in schema_or_dict.items():

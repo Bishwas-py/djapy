@@ -2,11 +2,10 @@ import inspect
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
-from django.http import HttpRequest, JsonResponse, HttpResponse, QueryDict
+from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
 
 from djapy.data.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
-from djapy.data.openapi import make_openapi_response
 from djapy.data.parser import extract_and_validate_request_params
 from djapy.schema import Schema
 from djapy.utils.prepare_exception import log_exception
@@ -15,11 +14,14 @@ from djapy.utils.prepare_exception import log_exception
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
-            ) -> Callable:
+            openapi: bool = False,
+            openapi_tags: List[str] = None) -> Callable:
     """
     :param schema_or_view_func: A pydantic model or a view function
     :param login_required: A boolean to check if the view requires login
     :param allowed_method: A string or a list of strings to check if the view allows the method
+    :param openapi: A boolean to check if the view should be included in the openapi schema
+    :param openapi_tags: A list of strings to tag the view in the openapi schema
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
 
@@ -74,7 +76,9 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
 
         if inspect.isclass(schema_or_view_func) or isinstance(schema_or_view_func, dict):
             _wrapped_view.djapy = True
-            _wrapped_view.openapi = make_openapi_response(schema_or_view_func)
+            _wrapped_view.openapi = openapi
+            _wrapped_view.openapi_tags = openapi_tags
+            _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
 
         if login_required:
             setattr(_wrapped_view, 'djapy_has_login_required', True)
