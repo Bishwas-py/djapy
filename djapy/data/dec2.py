@@ -89,10 +89,10 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_AUTH_REQUIRED_MESSAGE),
                                     status=401)
             if isinstance(djapy_allowed_method, list) and request.method not in djapy_allowed_method:
-                return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
+                return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
             elif isinstance(djapy_allowed_method, str) and request.method != djapy_allowed_method:
-                return JsonResponse(getattr(view_func, 'message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
+                return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params)
