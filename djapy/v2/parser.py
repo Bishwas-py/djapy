@@ -1,63 +1,61 @@
 import json
-from inspect import Parameter
-
-from pydantic import create_model, EmailStr
+from pydantic import ValidationError, create_model
+from django.http import JsonResponse
 
 from djapy.schema import Schema
-from djapy.v2.response import create_validation_error
 
 
-class CreateUserSchema(Schema):
-    username: str
-    email: EmailStr
+class RequestDataParser:
 
-    class Config:
-        is_query = False
+    def __init__(self, required_params):
+        self.required_params = required_params
+
+    def create_data_model(self):
+        """
+        Create a Pydantic model on the basis of required parameters.
+        """
+        data_model = create_model(
+            'input',
+            **{param.name: (param.annotation, ...) for param in self.required_params},
+            __base__=Schema
+        )
+        return data_model
+
+    def parse_request_data(self, request):
+        """
+        Parse the request data and validate it with the data model.
+        """
+        data_model = self.create_data_model()
+        data = self.get_request_data(request)
+
+        validated_obj = data_model.parse_obj(data)
+        validated_data = validated_obj.dict()
+
+        # Destructure the validated data to the first level
+        destructured_data = {k: v.dict() if hasattr(v, "dict") else v for k, v in validated_data.items()}
+        return destructured_data
+
+    def get_request_data(self, request):
+        """
+        Returns all the data in the request.
+        """
+        param_based_data = {}
+        for param in self.required_params:
+            data = request.GET.dict()
+            if request.POST:
+                data.update(request.POST.dict())
+            elif request_body := request.body.decode():
+                data.update(json.loads(request_body))
+            param_based_data[param.name] = data
+        return param_based_data
 
 
-class Reason(Schema):
-    reason_code: str
-    reason_id: int
-
-
-def extract_and_validate_request_params(request, required_params: list[Parameter], view_kwargs: dict) -> dict:
+def extract_and_validate_request_params(request, required_params, view_kwargs):
     """
     Extracts and validates request parameters from a Django request object.
     :param request: HttpRequest
         The Django request object to extract parameters from.
     :param required_params: list
     """
-    parsed_data = {}
-    print(required_params)
-    # create parable modal from required_params
-    request_schema_dict = {param.name: (param.annotation, ...) for param in required_params}
-    parsable_model = create_model(
-        'input',
-        **request_schema_dict,
-        __base__=Schema
-    )
-    print(parsable_model.schema())
-    for param in required_params:
-
-        param_type = param.annotation
-        if issubclass(param_type, Schema):
-            is_query = getattr(param_type.Config, "is_query", False) if hasattr(param_type, "Config") else True
-            data_dict = {}
-            if is_query:
-                data_dict.update(**request.GET.dict())
-            if request.POST:
-                data_dict.update(request.POST.dict())
-            elif request.body:
-                data_dict.update(json.loads(request.body))
-            parsed_data[param.name] = param_type(**data_dict)
-        else:
-            parsable_value = view_kwargs.get(param.name) or request.GET.get(param.name)
-            if parsable_value:
-                try:
-                    parsed_data[param.name] = param_type(parsable_value)
-                except ValueError:
-                    raise create_validation_error("input", param_type.__name__, f"{param_type.__name__}_parsing")
-            else:
-                raise create_validation_error("input", param_type.__name__, "missing")
-
-    return parsed_data
+    parser = RequestDataParser(required_params)
+    return parser.parse_request_data(request)
