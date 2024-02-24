@@ -47,9 +47,11 @@ def make_openapi_response(url_: URLPattern,
                             "description": "OK" if status == 200 else "Else 200",
                             "content": {
                                 "application/json": {
-                                    "$ref": "#/components/schemas/" + schema.__name__ if issubclass(schema,
-                                                                                                    Schema) else {
-                                        "type": BASIC_TYPES.get(schema.__name__, "object")
+                                    "schema": {
+                                        "$ref": "#/components/schemas/" + schema.__name__ if issubclass(schema,
+                                                                                                        Schema) else {
+                                            "type": BASIC_TYPES.get(schema.__name__, "object")
+                                        }
                                     }
                                 }
                             }
