@@ -78,10 +78,7 @@ class ResponseDataParser:
         """
         Create a Pydantic model on the basis of response schema.
         """
-        schema = self.schemas.get(self.status, None)
-        if schema is None:
-            raise create_validation_error("Response", "status", "schema_not_found")
-
+        schema = self.schemas[self.status]
         # Create a dynamic Pydantic model with the schema
         response_model = create_model(
             'output',
