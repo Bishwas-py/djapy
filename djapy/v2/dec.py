@@ -145,4 +145,7 @@ def djapify(view_func: Callable = None,
 
         return _wrapped_view
 
+    if callable(view_func):
+        return decorator(view_func)
+
     return decorator
