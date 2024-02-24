@@ -64,7 +64,7 @@ def handle_error(request, exception):
     return None
 
 
-def djapify(view_func: Schema | Dict[int, Type[Schema]],
+def djapify(view_func: Callable = None,
             login_required: bool = False,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
@@ -78,9 +78,6 @@ def djapify(view_func: Schema | Dict[int, Type[Schema]],
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
     global _errorhandler_functions
-
-    if not isinstance(x_schema, dict):
-        x_schema = {200: x_schema}
 
     def decorator(view_func):
         required_params = get_required_params(view_func)
@@ -128,6 +125,8 @@ def djapify(view_func: Schema | Dict[int, Type[Schema]],
                     return JsonResponse(create_json_from_validation_error(exception), status=400, safe=False)
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
+
+        x_schema = view_func.__annotations__.get('return', None)
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
