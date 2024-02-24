@@ -88,14 +88,9 @@ def djapify(view_func: Callable = None,
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
 
             if djapy_has_login_required and not request.user.is_authenticated:
-                return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_AUTH_REQUIRED_MESSAGE),
-                                    status=401)
+                return JsonResponse(view_func.djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
             if isinstance(djapy_allowed_method, list) and request.method not in djapy_allowed_method:
-                return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
-                                    status=405)
-            elif isinstance(djapy_allowed_method, str) and request.method != djapy_allowed_method:
-                return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
-                                    status=405)
+                return JsonResponse(view_func.djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params, view_kwargs)
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
@@ -132,7 +127,7 @@ def djapify(view_func: Callable = None,
         _wrapped_view.openapi = openapi
         _wrapped_view.openapi_tags = openapi_tags
         _wrapped_view.schema = x_schema
-        _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
+        _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         _wrapped_view.required_params = required_params
 
         _wrapped_view.djapy_has_login_required = login_required
