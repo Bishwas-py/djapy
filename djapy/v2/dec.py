@@ -111,7 +111,7 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                     validated_data = schema_or_type.model_validate(response)
                     return JsonResponse(validated_data.dict(), status=status)
 
-                if schema_or_type is not None and isinstance(response, schema_or_type):
+                if schema_or_type is not None and isinstance(response, schema_or_type) and callable(schema_or_type):
                     return JsonResponse(schema_or_type(response), status=status, safe=False)
                 else:
                     raise create_validation_error("Response", "response", f"{schema_or_type.__name__}_parsing")
