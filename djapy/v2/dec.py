@@ -8,7 +8,7 @@ from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails
 
-from djapy.v2.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
+from djapy.v2.defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
 from djapy.v2.parser import extract_and_validate_request_params
 from djapy.schema import Schema
@@ -66,7 +66,7 @@ def handle_error(request, exception):
 
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
-            allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
+            allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             openapi_tags: List[str] = None) -> Callable:
     """
@@ -135,11 +135,15 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             _wrapped_view.openapi_tags = openapi_tags
             _wrapped_view.schema = schema_or_view_func
             _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
+            _wrapped_view.required_params = required_params
 
         if login_required:
             setattr(_wrapped_view, 'djapy_has_login_required', True)
         if allowed_method:
-            setattr(_wrapped_view, 'djapy_allowed_method', allowed_method)
+            if isinstance(allowed_method, list):
+                setattr(_wrapped_view, 'djapy_allowed_method', allowed_method)
+            elif isinstance(allowed_method, str):
+                setattr(_wrapped_view, 'djapy_allowed_method', [allowed_method])
 
         return _wrapped_view
 
