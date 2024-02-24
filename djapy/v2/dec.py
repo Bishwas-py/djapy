@@ -16,7 +16,7 @@ import logging
 
 __all__ = ['djapify']
 
-from djapy.v2.response import create_json_from_validation_error
+from djapy.v2.response import create_json_from_validation_error, create_validation_error
 
 MAX_HANDLER_COUNT = 1
 
@@ -85,7 +85,7 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
         required_params = get_required_params(view_func)
 
         @wraps(view_func)
-        def _wrapped_view(request: HttpRequest, *args, **kwargs):
+        def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
             djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
 
@@ -99,8 +99,8 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 return JsonResponse(getattr(view_func, 'djapy_message_response', DEFAULT_METHOD_NOT_ALLOWED_MESSAGE),
                                     status=405)
             try:
-                _data_kwargs = extract_and_validate_request_params(request, required_params)
-                response_from_view_func = view_func(request, *args, **_data_kwargs, **kwargs)
+                _data_kwargs = extract_and_validate_request_params(request, required_params, view_kwargs)
+                response_from_view_func = view_func(request, *args, **_data_kwargs)
                 if isinstance(response_from_view_func, tuple):
                     status, response = response_from_view_func
                 else:
@@ -111,20 +111,10 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                     validated_data = schema_or_type.model_validate(response)
                     return JsonResponse(validated_data.dict(), status=status)
 
-                if isinstance(response, schema_or_type):
+                if schema_or_type is not None and isinstance(response, schema_or_type):
                     return JsonResponse(schema_or_type(response), status=status, safe=False)
                 else:
-                    raise ValidationError.from_exception_data(
-                        title="Response",
-                        line_errors=[
-                            InitErrorDetails(
-                                loc=("response",),
-                                type=f"{schema_or_type.__name__}_parsing",
-                                input=None
-                            )
-                        ],
-                        input_type="python",
-                    )
+                    raise create_validation_error("Response", "response", f"{schema_or_type.__name__}_parsing")
 
             except Exception as exception:
                 logging.exception(exception)
@@ -138,10 +128,11 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
-        if inspect.isclass(schema_or_view_func) or isinstance(schema_or_view_func, dict):
+        if isinstance(schema_or_view_func, dict):
             _wrapped_view.djapy = True
             _wrapped_view.openapi = openapi
             _wrapped_view.openapi_tags = openapi_tags
+            _wrapped_view.schema = schema_or_view_func
             _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
 
         if login_required:
