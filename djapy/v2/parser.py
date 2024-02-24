@@ -1,10 +1,26 @@
 import json
+from inspect import Parameter
+
+from pydantic import create_model, EmailStr
 
 from djapy.schema import Schema
 from djapy.v2.response import create_validation_error
 
 
-def extract_and_validate_request_params(request, required_params: list, view_kwargs: dict) -> dict:
+class CreateUserSchema(Schema):
+    username: str
+    email: EmailStr
+
+    class Config:
+        is_query = False
+
+
+class Reason(Schema):
+    reason_code: str
+    reason_id: int
+
+
+def extract_and_validate_request_params(request, required_params: list[Parameter], view_kwargs: dict) -> dict:
     """
     Extracts and validates request parameters from a Django request object.
     :param request: HttpRequest
@@ -12,7 +28,17 @@ def extract_and_validate_request_params(request, required_params: list, view_kwa
     :param required_params: list
     """
     parsed_data = {}
+    print(required_params)
+    # create parable modal from required_params
+    request_schema_dict = {param.name: (param.annotation, ...) for param in required_params}
+    parsable_model = create_model(
+        'input',
+        **request_schema_dict,
+        __base__=Schema
+    )
+    print(parsable_model.schema())
     for param in required_params:
+
         param_type = param.annotation
         if issubclass(param_type, Schema):
             is_query = getattr(param_type.Config, "is_query", False) if hasattr(param_type, "Config") else True
