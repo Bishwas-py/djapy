@@ -1,13 +1,15 @@
 import json
+from inspect import Parameter
+
 from pydantic import ValidationError, create_model
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
 
 
 class RequestDataParser:
 
-    def __init__(self, request, required_params, view_kwargs):
+    def __init__(self, request: HttpRequest, required_params: list[Parameter], view_kwargs):
         self.required_params = required_params
         self.view_kwargs = view_kwargs
         self.request = request
@@ -29,13 +31,11 @@ class RequestDataParser:
         """
         data_model = self.create_data_model()
         data = self.get_request_data()
-        print(data)
         validated_obj = data_model.parse_obj(data)
-        validated_data = validated_obj.dict()
-
-        # Destructure the validated data to the first level
-        destructured_data = {k: v for k, v in validated_data.items()}
-        return destructured_data
+        destructured_object_data = {}
+        for param in self.required_params:
+            destructured_object_data[param.name] = getattr(validated_obj, param.name)
+        return destructured_object_data
 
     def get_request_data(self):
         """
@@ -49,8 +49,13 @@ class RequestDataParser:
             data.update(self.request.POST.dict())
         elif request_body := self.request.body.decode():
             data.update(json.loads(request_body))
+
+        # if self.request.FILES:
+        #     data.update(self.request.FILES.dict())
+        # print(data)
         for param in self.required_params:
-            if isinstance(param.annotation, Schema):
+            print(param.annotation)
+            if isinstance(param.annotation, Schema) or issubclass(param.annotation, Schema):
                 param_based_data[param.name] = data
             else:
                 param_based_data[param.name] = data.get(param.name, None)

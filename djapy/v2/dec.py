@@ -108,7 +108,7 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                     status, response = 200, response_from_view_func
 
                 schema_or_type = schema_or_view_func.get(status, None)
-                if issubclass(schema_or_type, Schema):
+                if inspect.isclass(schema_or_type) and issubclass(schema_or_type, Schema):
                     validated_data = schema_or_type.model_validate(response)
                     return JsonResponse(validated_data.dict(), status=status)
 
