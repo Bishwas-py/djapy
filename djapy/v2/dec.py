@@ -66,7 +66,7 @@ def handle_error(request, exception):
 def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS | List[ALLOW_METHODS] = "GET",
-            openapi: bool = False,
+            openapi: bool = True,
             openapi_tags: List[str] = None) -> Callable:
     """
     :param schema_or_view_func: A pydantic model or a view function
