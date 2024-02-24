@@ -64,7 +64,7 @@ def handle_error(request, exception):
     return None
 
 
-def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
+def djapify(view_func: Schema | Dict[int, Type[Schema]],
             login_required: bool = False,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
@@ -79,8 +79,8 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
     """
     global _errorhandler_functions
 
-    if not isinstance(schema_or_view_func, dict):
-        schema_or_view_func = {200: schema_or_view_func}
+    if not isinstance(x_schema, dict):
+        x_schema = {200: x_schema}
 
     def decorator(view_func):
         required_params = get_required_params(view_func)
@@ -107,7 +107,7 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                 else:
                     status, response = 200, response_from_view_func
 
-                schema_or_type = schema_or_view_func.get(status, None)
+                schema_or_type = x_schema.get(status, None)
                 if inspect.isclass(schema_or_type) and issubclass(schema_or_type, Schema):
                     validated_data = schema_or_type.model_validate(response)
                     return JsonResponse(validated_data.dict(), status=status)
@@ -129,13 +129,12 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
-        if isinstance(schema_or_view_func, dict):
-            _wrapped_view.djapy = True
-            _wrapped_view.openapi = openapi
-            _wrapped_view.openapi_tags = openapi_tags
-            _wrapped_view.schema = schema_or_view_func
-            _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
-            _wrapped_view.required_params = required_params
+        _wrapped_view.djapy = True
+        _wrapped_view.openapi = openapi
+        _wrapped_view.openapi_tags = openapi_tags
+        _wrapped_view.schema = x_schema
+        _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
+        _wrapped_view.required_params = required_params
 
         if login_required:
             setattr(_wrapped_view, 'djapy_has_login_required', True)
