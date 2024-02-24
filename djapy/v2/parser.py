@@ -1,10 +1,12 @@
 import json
 from inspect import Parameter
+from typing import Dict, Any, Union, Type
 
-from pydantic import ValidationError, create_model
+from pydantic import ValidationError, create_model, BaseModel
 from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
+from djapy.v2.response import create_validation_error
 
 
 class RequestDataParser:
@@ -62,6 +64,41 @@ class RequestDataParser:
             else:
                 param_based_data[param.name] = data.get(param.name, None)
         return param_based_data
+
+
+class ResponseDataParser:
+
+    def __init__(self, status: int, data: Any, schemas: Dict[int, Union[Type[Schema], type]]):
+        self.status = status
+        self.data = data
+        if not isinstance(schemas, dict):
+            raise create_validation_error("Response", "schemas", "invalid_type")
+        self.schemas = schemas
+
+    def create_response_model(self):
+        """
+        Create a Pydantic model on the basis of response schema.
+        """
+        schema = self.schemas.get(self.status, None)
+        if schema is None:
+            raise create_validation_error("Response", "status", "schema_not_found")
+
+        # Create a dynamic Pydantic model with the schema
+        response_model = create_model(
+            'output',
+            **{'response': (schema, ...)},
+            __base__=Schema
+        )
+        return response_model
+
+    def parse_response_data(self) -> Dict[str, Any]:
+        response_model = self.create_response_model()
+        validated_obj = response_model.parse_obj({'response': self.data})
+
+        # Deconstruct the object data
+        destructured_object_data = validated_obj.dict()
+
+        return destructured_object_data.get('response')
 
 
 def extract_and_validate_request_params(request, required_params, view_kwargs):

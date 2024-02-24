@@ -10,7 +10,7 @@ from pydantic_core import InitErrorDetails
 
 from djapy.v2.defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from djapy.v2.parser import extract_and_validate_request_params
+from djapy.v2.parser import extract_and_validate_request_params, ResponseDataParser
 from djapy.schema import Schema
 import logging
 
@@ -87,6 +87,7 @@ def djapify(view_func: Callable = None,
             djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
+
             if request.method not in djapy_allowed_method:
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             if djapy_has_login_required and not request.user.is_authenticated:
@@ -99,15 +100,9 @@ def djapify(view_func: Callable = None,
                 else:
                     status, response = 200, response_from_view_func
 
-                schema_or_type = x_schema.get(status, None)
-                if inspect.isclass(schema_or_type) and issubclass(schema_or_type, Schema):
-                    validated_data = schema_or_type.parse_obj(response)
-                    return JsonResponse(validated_data.dict(), status=status)
-
-                if schema_or_type is not None and isinstance(response, schema_or_type) and callable(schema_or_type):
-                    return JsonResponse(schema_or_type(response), status=status, safe=False)
-                else:
-                    raise create_validation_error("Response", "response", f"{schema_or_type.__name__}_parsing")
+                parser = ResponseDataParser(status, response, x_schema)
+                parsed_data = parser.parse_response_data()
+                return JsonResponse(parsed_data, status=status, safe=False)
 
             except Exception as exception:
                 logging.exception(exception)
