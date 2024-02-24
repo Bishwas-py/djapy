@@ -1,12 +1,14 @@
+import json
+
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails
 
 
 def create_json_from_validation_error(exception: ValidationError):
     return {
-        'error': exception.errors(),
+        'error': json.loads(exception.json()),
         'error_count': exception.error_count(),
-        'title': exception.title
+        'title': str(exception.title)
     }
 
 

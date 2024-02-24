@@ -86,11 +86,12 @@ def djapify(view_func: Callable = None,
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
             djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
+            djapy_message_response = getattr(view_func, 'djapy_message_response', None)
 
             if djapy_has_login_required and not request.user.is_authenticated:
-                return JsonResponse(view_func.djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
+                return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
             if isinstance(djapy_allowed_method, list) and request.method not in djapy_allowed_method:
-                return JsonResponse(view_func.djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
+                return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params, view_kwargs)
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
@@ -101,7 +102,7 @@ def djapify(view_func: Callable = None,
 
                 schema_or_type = x_schema.get(status, None)
                 if inspect.isclass(schema_or_type) and issubclass(schema_or_type, Schema):
-                    validated_data = schema_or_type.model_validate(response)
+                    validated_data = schema_or_type.parse_obj(response)
                     return JsonResponse(validated_data.dict(), status=status)
 
                 if schema_or_type is not None and isinstance(response, schema_or_type) and callable(schema_or_type):
@@ -130,11 +131,12 @@ def djapify(view_func: Callable = None,
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         _wrapped_view.required_params = required_params
 
-        _wrapped_view.djapy_has_login_required = login_required
-        if isinstance(allowed_method, str):
-            _wrapped_view.djapy_allowed_method = [allowed_method]
-        else:
-            _wrapped_view.djapy_allowed_method = allowed_method
+        _wrapped_view.djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', login_required)
+        if not getattr(_wrapped_view, 'djapy_allowed_method', None):
+            if isinstance(allowed_method, str):
+                _wrapped_view.djapy_allowed_method = [allowed_method]
+            else:
+                _wrapped_view.djapy_allowed_method = allowed_method
 
         return _wrapped_view
 

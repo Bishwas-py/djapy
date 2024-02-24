@@ -21,10 +21,10 @@ def djapy_login_required(view_func_or_message_dict: Callable | Dict[str, str] = 
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
+            view_func.djapy_message_response = message_response
             return view_func(request, *args, **kwargs)
 
         _wrapped_view.djapy_has_login_required = True
-        _wrapped_view.djapy_message_response = message_response
         return _wrapped_view
 
     if inspect.isfunction(view_func_or_message_dict):
@@ -45,11 +45,10 @@ def djapy_method(allowed_method_or_list: ALLOW_METHODS_LITERAL | List[ALLOW_METH
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
             if request.method not in allowed_method_or_list:
-                return JsonResponse(message_response, status=405)
+                view_func.djapy_message_response = message_response
             return view_func(request, *args, **kwargs)
 
         _wrapped_view.djapy_allowed_method = allowed_method_or_list
-        _wrapped_view.djapy_message_response = message_response
         return _wrapped_view
 
     return decorator

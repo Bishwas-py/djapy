@@ -45,10 +45,12 @@ class RequestDataParser:
         data = self.request.GET.dict()
         if self.view_kwargs:
             data.update(self.view_kwargs)
-        if self.request.POST:
-            data.update(self.request.POST.dict())
-        elif request_body := self.request.body.decode():
-            data.update(json.loads(request_body))
+
+        if self.request.method != 'GET':
+            if self.request.POST:
+                data.update(self.request.POST.dict())
+            elif request_body := self.request.body.decode():
+                data.update(json.loads(request_body))
 
         # if self.request.FILES:
         #     data.update(self.request.FILES.dict())
