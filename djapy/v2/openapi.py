@@ -60,7 +60,7 @@ class OpenAPI:
         responses = {}
         for status, schema in getattr(view_func, 'schema', {}).items():
             description = "OK" if status == 200 else "Else 200"
-            if issubclass(schema, Schema):
+            if callable(getattr(schema, "schema", None)):
                 content = {"$ref": f"#/components/schemas/{schema.__name__}"}
                 prepared_schema = schema.schema()
                 if "$defs" in prepared_schema:

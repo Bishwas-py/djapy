@@ -48,7 +48,10 @@ def djapy_method(allowed_method_or_list: ALLOW_METHODS_LITERAL | List[ALLOW_METH
                 view_func.djapy_message_response = message_response
             return view_func(request, *args, **kwargs)
 
-        _wrapped_view.djapy_allowed_method = allowed_method_or_list
+        if isinstance(allowed_method_or_list, str):
+            _wrapped_view.djapy_allowed_method = [allowed_method_or_list]
+        else:
+            _wrapped_view.djapy_allowed_method = allowed_method_or_list
         return _wrapped_view
 
     return decorator
