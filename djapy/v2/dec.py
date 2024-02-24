@@ -1,10 +1,12 @@
 import importlib
 import inspect
+import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
+from pydantic_core import InitErrorDetails
 
 from djapy.v2.defaults import ALLOW_METHODS, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
@@ -13,6 +15,8 @@ from djapy.schema import Schema
 import logging
 
 __all__ = ['djapify']
+
+from djapy.v2.response import create_json_from_validation_error
 
 MAX_HANDLER_COUNT = 1
 
@@ -96,28 +100,43 @@ def djapify(schema_or_view_func: Schema | Callable | Dict[int, Type[Schema]],
                                     status=405)
             try:
                 _data_kwargs = extract_and_validate_request_params(request, required_params)
-                func = view_func(request, *args, **_data_kwargs, **kwargs)
+                response_from_view_func = view_func(request, *args, **_data_kwargs, **kwargs)
+                if isinstance(response_from_view_func, tuple):
+                    status, response = response_from_view_func
+                else:
+                    status, response = 200, response_from_view_func
+
+                schema_or_type = schema_or_view_func.get(status, None)
+                if issubclass(schema_or_type, Schema):
+                    validated_data = schema_or_type.model_validate(response)
+                    return JsonResponse(validated_data.dict(), status=status)
+
+                if isinstance(response, schema_or_type):
+                    return JsonResponse(schema_or_type(response), status=status, safe=False)
+                else:
+                    raise ValidationError.from_exception_data(
+                        title="Response",
+                        line_errors=[
+                            InitErrorDetails(
+                                loc=("response",),
+                                type=f"{schema_or_type.__name__}_parsing",
+                                input=None
+                            )
+                        ],
+                        input_type="python",
+                    )
+
             except Exception as exception:
+                logging.exception(exception)
+
                 error_response = handle_error(request, exception)
                 if error_response:
                     return error_response
 
                 if isinstance(exception, ValidationError):
-                    return HttpResponse(content=exception.json(), content_type="application/json", status=400)
+                    return JsonResponse(create_json_from_validation_error(exception), status=400, safe=False)
 
-                logging.exception(exception)
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
-
-            schema = schema_or_view_func.get(200)
-            if issubclass(schema, Schema):
-                try:
-                    validated_data = schema.model_validate(func)
-                    return JsonResponse(validated_data.dict(), status=200)
-                except ValidationError as exception:
-                    return HttpResponse(content=exception.json(), content_type="application/json", status=400)
-
-            if callable(schema):
-                return JsonResponse(schema(func), status=200, safe=False)
 
         if inspect.isclass(schema_or_view_func) or isinstance(schema_or_view_func, dict):
             _wrapped_view.djapy = True
