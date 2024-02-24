@@ -70,7 +70,7 @@ def djapify(view_func: Callable = None,
             openapi: bool = True,
             openapi_tags: List[str] = None) -> Callable:
     """
-    :param schema_or_view_func: A pydantic model or a view function
+    :param view_func: A pydantic model or a view function
     :param login_required: A boolean to check if the view requires login
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
