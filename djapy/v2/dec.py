@@ -19,6 +19,7 @@ __all__ = ['djapify']
 from djapy.v2.response import create_json_from_validation_error, create_validation_error
 
 MAX_HANDLER_COUNT = 1
+ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
 
 
 def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
@@ -35,7 +36,7 @@ def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
 
 _errorhandler_functions = []
 try:
-    _imported_errorhandler = importlib.import_module("djapy_ext.errorhandler")
+    _imported_errorhandler = importlib.import_module(ERROR_HANDLER_MODULE)
     _all_handlers = dir(_imported_errorhandler)
     if len(_all_handlers) > MAX_HANDLER_COUNT:
         logging.warning(
