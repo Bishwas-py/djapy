@@ -135,13 +135,11 @@ def djapify(view_func: Callable = None,
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', {})
         _wrapped_view.required_params = required_params
 
-        if login_required:
-            setattr(_wrapped_view, 'djapy_has_login_required', True)
-        if allowed_method:
-            if isinstance(allowed_method, list):
-                setattr(_wrapped_view, 'djapy_allowed_method', allowed_method)
-            elif isinstance(allowed_method, str):
-                setattr(_wrapped_view, 'djapy_allowed_method', [allowed_method])
+        _wrapped_view.djapy_has_login_required = login_required
+        if isinstance(allowed_method, str):
+            _wrapped_view.djapy_allowed_method = [allowed_method]
+        else:
+            _wrapped_view.djapy_allowed_method = allowed_method
 
         return _wrapped_view
 
