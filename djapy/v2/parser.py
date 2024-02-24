@@ -58,7 +58,6 @@ class RequestDataParser:
         #     data.update(self.request.FILES.dict())
         # print(data)
         for param in self.required_params:
-            print(param.annotation)
             if isinstance(param.annotation, Schema) or issubclass(param.annotation, Schema):
                 param_based_data[param.name] = data
             else:
