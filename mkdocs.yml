@@ -56,9 +56,4 @@ copyright: |
 
 nav:
   - Introduction: index.md
-  - Getting Started: getting-started.md
-  - Data Input: data-input.md
-  - Pagination: pagination.md
-  - Wrappers: wrappers.md
-  - Views: views.md
-  - Middleware: middleware.md
+  - Usage: usage.md
