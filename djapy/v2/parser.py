@@ -73,7 +73,7 @@ class RequestDataParser:
                     __base__=BaseModel
                 )
                 validated_obj = json_modal_schema.parse_obj({
-                    'json': request_body
+                    'body': request_body
                 })
                 self.data.update(validated_obj.dict().get('json'))
         return {

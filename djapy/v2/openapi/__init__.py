@@ -5,7 +5,7 @@ from django.urls import URLPattern, get_resolver
 from pydantic import create_model
 
 from djapy.schema import Schema
-from djapy.v2.type_check import is_param_query_type, param_schema
+from djapy.v2.type_check import is_param_query_type, param_schema, schema_type
 
 
 class Path:
@@ -32,21 +32,21 @@ class Path:
 
     def get_request_body(self, view_func):
         request_model_dict = {}
-        for param in view_func.required_params:
-            if param.name in self.parameters_keys:
-                continue
-            request_model_dict[param.name] = (param.annotation, ...)
-        if not request_model_dict:
-            return {}
-
-        print(request_model_dict)
-        request_model = create_model(
-            'openapi_request_model',
-            **request_model_dict,
-            __base__=Schema
-        )
-        prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
-        print(prepared_schema)
+        if len(view_func.required_params) == 1 and (schema := schema_type(view_func.required_params[0])):
+            prepared_schema = schema.schema(ref_template="#/components/schemas/{model}")
+        else:
+            for param in view_func.required_params:
+                if param.name in self.parameters_keys:
+                    continue
+                request_model_dict[param.name] = (param.annotation, ...)
+            if not request_model_dict:
+                return {}
+            request_model = create_model(
+                'openapi_request_model',
+                **request_model_dict,
+                __base__=Schema
+            )
+            prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
         content = prepared_schema
