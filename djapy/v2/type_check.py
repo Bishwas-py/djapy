@@ -17,3 +17,9 @@ def is_param_query_type(param: Parameter):
 
 def param_schema(param: Parameter):
     return {"type": QUERY_BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)}
+
+
+def schema_type(param: Parameter):
+    if hasattr(param.annotation, "Config"):
+        return param.annotation
+    return None

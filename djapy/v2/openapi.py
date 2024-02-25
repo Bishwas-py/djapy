@@ -5,7 +5,7 @@ from django.urls import URLPattern, get_resolver
 from pydantic import create_model
 
 from djapy.schema import Schema
-from djapy.v2.query import is_param_query_type, param_schema
+from djapy.v2.type_check import is_param_query_type, param_schema
 
 
 class Path:
