@@ -1,6 +1,8 @@
+import json
 import re
 
 from django.urls import URLPattern, get_resolver, resolve
+from pydantic import create_model
 
 from djapy.schema import Schema
 
@@ -50,25 +52,29 @@ class Path:
         responses = {}
         for status, schema in getattr(view_func, 'schema', {}).items():
             description = "OK" if status == 200 else "Else 200"
-            if callable(getattr(schema, "schema", None)):
-                content = {"$ref": f"#/components/schemas/{schema.__name__}"}
-                prepared_schema = schema.schema()
-                print(self.export_definitions)
-                if "$defs" in prepared_schema:
-                    self.export_definitions.update(prepared_schema.pop("$defs"))
-                self.export_components[schema.__name__] = prepared_schema
-            else:
-                content = {"type": BASIC_TYPES.get(schema.__name__, "object")}
+            response_model = create_model(
+                'output',
+                **{'response': (schema, ...)},
+                __base__=Schema
+            )
+
+            prepared_schema = response_model.schema(ref_template="#/components/schemas/{model}")
+            print(prepared_schema)
+            if "$defs" in prepared_schema:
+                self.export_components.update(prepared_schema.pop("$defs"))
+            content = prepared_schema['properties']['response']
+
             responses[str(status)] = {
                 "description": description,
                 "content": {"application/json": {"schema": content}}
             }
+
         return responses
 
     def dict(self):
         self.operation_id = self.url_pattern.callback.__name__
         return {
-            self.method: {
+            self.method.lower(): {
                 "summary": self.summary,
                 "operationId": self.operation_id,
                 "responses": self.responses,
