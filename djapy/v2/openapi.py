@@ -19,7 +19,7 @@ BASIC_TYPES = {
 
 class Path:
     path: str
-    method: str
+    methods: str
     summary: str
     operation_id: str
     responses: dict
@@ -27,18 +27,15 @@ class Path:
     export_components: dict
     export_definitions: dict
 
-    def __init__(self, url_pattern: URLPattern, method: str):
+    def __init__(self, url_pattern: URLPattern, methods: str):
         self.url_pattern = url_pattern
         self.path = self.make_path_name_from_url()
-        self.method = method
+        self.methods = methods
         self.summary = "Register and login user"
         self.export_components = {}
         self.export_definitions = {}
         self.parameters = []
         self.responses = self.get_responses(url_pattern.callback)
-
-    def openapi_enabled(self):
-        return getattr(self.url_pattern.callback, 'openapi', False)
 
     def make_path_name_from_url(self) -> str:
         """
@@ -74,12 +71,12 @@ class Path:
     def dict(self):
         self.operation_id = self.url_pattern.callback.__name__
         return {
-            self.method.lower(): {
+            method.lower(): {
                 "summary": self.summary,
                 "operationId": self.operation_id,
                 "responses": self.responses,
                 "parameters": self.parameters
-            }
+            } for method in self.methods
         }
 
 
@@ -134,13 +131,14 @@ class OpenAPI:
 
     def generate_paths(self, url_pattern: list[URLPattern]):
         for url_pattern in url_pattern:
-            path = Path(url_pattern, "GET")
-            if path.export_definitions:
-                self.definitions.update(path.export_definitions)
-            if path.export_components:
-                self.components["schemas"].update(path.export_components)
-            if path.openapi_enabled():
-                self.paths[path.path] = path.dict()
+            if getattr(url_pattern.callback, 'djapy', False) and getattr(url_pattern.callback, 'openapi', False):
+                path = Path(url_pattern, url_pattern.callback.djapy_allowed_method)
+                if path.export_definitions:
+                    self.definitions.update(path.export_definitions)
+                if path.export_components:
+                    self.components["schemas"].update(path.export_components)
+                if getattr(url_pattern.callback, 'openapi', False):
+                    self.paths[path.path] = path.dict()
             if hasattr(url_pattern, 'url_patterns'):
                 self.generate_paths(url_pattern.url_patterns)
 
