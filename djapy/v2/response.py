@@ -12,15 +12,17 @@ def create_json_from_validation_error(exception: ValidationError):
     }
 
 
-def create_validation_error(title, loc_name, type):
-    raise ValidationError.from_exception_data(
+def create_validation_error(title, loc_name, _type):
+    return ValidationError.from_exception_data(
         title=title,
         line_errors=[
             InitErrorDetails(
                 loc=(loc_name,),
-                type=type,
-                input=None
+                type=_type,
+                input=[],
+                error={'msg': 'Validation error'}
             )
         ],
         input_type="python",
+
     )

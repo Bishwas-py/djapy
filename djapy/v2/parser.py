@@ -2,7 +2,7 @@ import json
 from inspect import Parameter
 from typing import Dict, Any, Union, Type
 
-from pydantic import ValidationError, create_model, BaseModel
+from pydantic import ValidationError, create_model, BaseModel, Json
 from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
@@ -38,9 +38,10 @@ class RequestDataParser:
         data_model = self.create_data_model()
         data = self.get_request_data()
         validated_obj = data_model.parse_obj(data)
-        destructured_object_data = {}
-        for param in self.required_params:
-            destructured_object_data[param.name] = getattr(validated_obj, param.name)
+        destructured_object_data = {
+            param.name: getattr(validated_obj, param.name)
+            for param in self.required_params
+        }
         return destructured_object_data
 
     def get_request_data(self):
@@ -55,7 +56,15 @@ class RequestDataParser:
             if self.request.POST:
                 data.update(self.request.POST.dict())
             elif request_body := self.request.body.decode():
-                data.update(json.loads(request_body))
+                json_modal_schema = create_model(
+                    'json',
+                    **{'json': (Json, ...)},
+                    __base__=BaseModel
+                )
+                validated_obj = json_modal_schema.parse_obj({
+                    'json': request_body
+                })
+                data.update(validated_obj.dict().get('json'))
         return data
 
 

@@ -146,21 +146,6 @@ class OpenAPI:
         new_path = re.sub('<int:(.+?)>', '{\g<1>}', str(url_.pattern))
         return new_path
 
-    #
-    # def get_interface_details(self, view_func):
-    #     if not hasattr(view_func, 'openapi') or not view_func.openapi:
-    #         return {}
-    #
-    #     interface_details = {}
-    #     for method in getattr(view_func, 'djapy_allowed_method', []):
-    #         interface_details[method.lower()] = {
-    #             "operationId": view_func.__name__,
-    #             "summary": "Register and login user",
-    #             "parameters": [],
-    #             "responses": self.get_responses(view_func)
-    #         }
-    #     return interface_details
-
     def generate_paths(self, url_pattern: list[URLPattern]):
         for url_pattern in url_pattern:
             if getattr(url_pattern.callback, 'djapy', False) and getattr(url_pattern.callback, 'openapi', False):
