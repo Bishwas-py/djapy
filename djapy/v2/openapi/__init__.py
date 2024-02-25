@@ -182,9 +182,10 @@ class OpenAPI:
             '$defs': self.definitions
         }
 
-    def set_basic_info(self, title: str, description):
+    def set_basic_info(self, title: str, description, version="1.0.0"):
         self.info.title = title
         self.info.description = description
+        self.info.version = version
 
     def get_openapi(self, request):
         return JsonResponse(self.dict())

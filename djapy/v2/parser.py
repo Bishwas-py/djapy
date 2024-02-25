@@ -42,10 +42,6 @@ class RequestDataParser:
         Parse the request data and validate it with the data model.
         """
         data = self.get_request_data()
-
-        #  make sure there is only one schema in the required_params
-        # if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
-        print(any(schema_type(param) for param in self.required_params))
         if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
             validated_obj = schema.validate(data)
             destructured_object_data = {
