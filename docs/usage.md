@@ -23,7 +23,7 @@ def get_user(request, data: UserCreationSchema) -> {200: UserSchema, 404: Messag
     - The return type is a dictionary that maps status codes to Schema[Pydantic models].
 - The function body can be anything you want, as long as it returns a dictionary that maps status codes to Pydantic
   models.
-
+3
 ## Request
 
 The schema is defined using Pydantic models. Here's an example:
@@ -159,3 +159,7 @@ urlpatterns = [
   "title": "output"
 }
 ```
+
+## Custom error response
+
+You can also return a custom error response, by create error handlers inside `djapy_ext/errorhandler.py`;
