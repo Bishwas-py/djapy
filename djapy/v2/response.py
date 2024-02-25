@@ -19,8 +19,7 @@ def create_validation_error(title, loc_name, _type):
             InitErrorDetails(
                 loc=(loc_name,),
                 type=_type,
-                input=[],
-                error={'msg': 'Validation error'}
+                input=None,
             )
         ],
         input_type="python",

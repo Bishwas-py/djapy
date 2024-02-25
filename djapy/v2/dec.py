@@ -3,15 +3,15 @@ import inspect
 import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
+from pydantic_core import InitErrorDetails
+from djapy.schema import Schema
 
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError
-from pydantic_core import InitErrorDetails
 
 from djapy.v2.defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from djapy.v2.parser import extract_and_validate_request_params, ResponseDataParser
-from djapy.schema import Schema
+from djapy.v2.parser import ResponseDataParser, RequestDataParser
 import logging
 
 __all__ = ['djapify']
@@ -93,7 +93,8 @@ def djapify(view_func: Callable = None,
             if djapy_has_login_required and not request.user.is_authenticated:
                 return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
             try:
-                _data_kwargs = extract_and_validate_request_params(request, required_params, view_kwargs)
+                parser = RequestDataParser(request, required_params, view_kwargs)
+                _data_kwargs = parser.parse_request_data()
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
                 if isinstance(response_from_view_func, tuple):
                     status, response = response_from_view_func

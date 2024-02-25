@@ -11,6 +11,9 @@ from djapy.v2.response import create_validation_error
 
 
 class RequestDataParser:
+    query_data = {}
+    line_kwargs = {}
+    data = {}
 
     def __init__(self, request: HttpRequest, required_params: list[Parameter], view_kwargs):
         self.required_params = required_params
@@ -48,13 +51,14 @@ class RequestDataParser:
         """
         Returns all the data in the self.request.
         """
-        data = self.request.GET.dict()
         if self.view_kwargs:
-            data.update(self.view_kwargs)
+            self.line_kwargs.update(self.view_kwargs)
+        if self.request.method == 'GET':
+            self.query_data.update(self.request.GET.dict())
 
         if self.request.method != 'GET':
             if self.request.POST:
-                data.update(self.request.POST.dict())
+                self.data.update(self.request.POST.dict())
             elif request_body := self.request.body.decode():
                 json_modal_schema = create_model(
                     'json',
@@ -64,8 +68,12 @@ class RequestDataParser:
                 validated_obj = json_modal_schema.parse_obj({
                     'json': request_body
                 })
-                data.update(validated_obj.dict().get('json'))
-        return data
+                self.data.update(validated_obj.dict().get('json'))
+        return {
+            **self.query_data,
+            **self.line_kwargs,
+            **self.data
+        }
 
 
 class ResponseDataParser:
@@ -100,13 +108,13 @@ class ResponseDataParser:
         return destructured_object_data.get('response')
 
 
-def extract_and_validate_request_params(request, required_params, view_kwargs):
-    """
-    Extracts and validates request parameters from a Django request object.
-    :param request: HttpRequest
-        The Django request object to extract parameters from.
-    :param required_params: list
-    :params view_kwargs: dict
-    """
-    parser = RequestDataParser(request, required_params, view_kwargs)
-    return parser.parse_request_data()
+# def extract_and_validate_request_params(request, required_params, view_kwargs):
+#     """
+#     Extracts and validates request parameters from a Django request object.
+#     :param request: HttpRequest
+#         The Django request object to extract parameters from.
+#     :param required_params: list
+#     :params view_kwargs: dict
+#     """
+#     parser = RequestDataParser(request, required_params, view_kwargs)
+#     return parser.parse_request_data()
