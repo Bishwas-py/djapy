@@ -25,6 +25,7 @@ class RequestDataParser:
             **{param.name: (param.annotation, ...) for param in self.required_params},
             __base__=Schema
         )
+        print(data_model.schema_json())
         return data_model
 
     def parse_request_data(self):
@@ -43,7 +44,6 @@ class RequestDataParser:
         """
         Returns all the data in the self.request.
         """
-        param_based_data = {}
         data = self.request.GET.dict()
         if self.view_kwargs:
             data.update(self.view_kwargs)
@@ -53,16 +53,7 @@ class RequestDataParser:
                 data.update(self.request.POST.dict())
             elif request_body := self.request.body.decode():
                 data.update(json.loads(request_body))
-
-        # if self.request.FILES:
-        #     data.update(self.request.FILES.dict())
-        # print(data)
-        for param in self.required_params:
-            if isinstance(param.annotation, Schema) or issubclass(param.annotation, Schema):
-                param_based_data[param.name] = data
-            else:
-                param_based_data[param.name] = data.get(param.name, None)
-        return param_based_data
+        return data
 
 
 class ResponseDataParser:

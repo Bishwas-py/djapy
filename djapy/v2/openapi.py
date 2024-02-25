@@ -41,10 +41,11 @@ class Path:
         for param in view_func.required_params:
             if param.name in self.parameters_keys:
                 continue
-            request_model_dict[param.name] = param.annotation
+            request_model_dict[param.name] = (param.annotation, ...)
         if not request_model_dict:
             return {}
 
+        print(request_model_dict)
         request_model = create_model(
             'openapi_request_model',
             **request_model_dict,
