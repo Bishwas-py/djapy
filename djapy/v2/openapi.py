@@ -36,6 +36,23 @@ class Path:
         self.export_definitions = {}
         self.parameters = []
         self.responses = self.get_responses(url_pattern.callback)
+        self.request_body = self.get_request_body(url_pattern.callback)
+
+    def get_request_body(self, view_func):
+        request_model = create_model(
+            'openapi_request_model',
+            **{param.name: (param.annotation, ...) for param in view_func.required_params},
+            __base__=Schema
+        )
+        prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
+        print(prepared_schema)
+        if "$defs" in prepared_schema:
+            self.export_components.update(prepared_schema.pop("$defs"))
+        content = prepared_schema
+        request_body = {
+            "content": {"application/json": {"schema": content}}
+        }
+        return request_body
 
     def make_path_name_from_url(self) -> str:
         """
@@ -50,17 +67,15 @@ class Path:
         for status, schema in getattr(view_func, 'schema', {}).items():
             description = "OK" if status == 200 else "Else 200"
             response_model = create_model(
-                'output',
+                'openapi_response_model',
                 **{'response': (schema, ...)},
                 __base__=Schema
             )
 
             prepared_schema = response_model.schema(ref_template="#/components/schemas/{model}")
-            print(prepared_schema)
             if "$defs" in prepared_schema:
                 self.export_components.update(prepared_schema.pop("$defs"))
             content = prepared_schema['properties']['response']
-
             responses[str(status)] = {
                 "description": description,
                 "content": {"application/json": {"schema": content}}
@@ -75,7 +90,8 @@ class Path:
                 "summary": self.summary,
                 "operationId": self.operation_id,
                 "responses": self.responses,
-                "parameters": self.parameters
+                "parameters": self.parameters,
+                "requestBody": self.request_body
             } for method in self.methods
         }
 
