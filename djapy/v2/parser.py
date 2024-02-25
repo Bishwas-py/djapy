@@ -40,6 +40,10 @@ class RequestDataParser:
         """
         data = self.get_request_data()
 
+
+        #  make sure there is only one schema in the required_params
+        # if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
+        print(any(schema_type(param) for param in self.required_params))
         if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
             validated_obj = schema.validate(data)
             destructured_object_data = {
@@ -75,7 +79,7 @@ class RequestDataParser:
                 validated_obj = json_modal_schema.parse_obj({
                     'body': request_body
                 })
-                self.data.update(validated_obj.dict().get('json'))
+                self.data.update(validated_obj.dict().get('body'))
         return {
             **self.query_data,
             **self.line_kwargs,
