@@ -193,12 +193,15 @@ class OpenAPI:
     def render_swagger_ui(request):
         return render(request, 'djapy/swagger_cdn.html')
 
-    @property
-    def url(self):
+    def get_urls(self):
         return [
             path('openapi.json', self.get_openapi, name='openapi'),
             path('swagger/', self.render_swagger_ui, name='swagger'),
         ]
+
+    @property
+    def urls(self):
+        return self.get_urls(), "djapy", "djapy-openapi"
 
 
 openapi = OpenAPI()
