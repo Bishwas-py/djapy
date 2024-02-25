@@ -1,7 +1,5 @@
-*
-!djapy/
-!djapy/*.py
-!setup.py
-!requirements.txt
+!djapy/*.*
+*.*
+!mkdocs.yml
 !README.md
-__pycache__/
+!requirements.txt
