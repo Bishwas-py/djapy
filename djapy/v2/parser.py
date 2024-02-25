@@ -10,6 +10,7 @@ from djapy.v2.type_check import schema_type
 from djapy.v2.response import create_validation_error
 
 JSON_BODY_PARSE_NAME = "body"
+REQUEST_INPUT_SCHEMA_NAME = "input"
 
 
 class RequestDataParser:
@@ -30,7 +31,7 @@ class RequestDataParser:
         for param in self.required_params:
             input_data_model_dict[param.name] = (param.annotation, ...)
         data_model = create_model(
-            'input',
+            REQUEST_INPUT_SCHEMA_NAME,
             **input_data_model_dict,
             __base__=Schema
         )
@@ -73,7 +74,7 @@ class RequestDataParser:
                 self.data.update(self.request.POST.dict())
             elif request_body := self.request.body.decode():
                 json_modal_schema = create_model(
-                    'input',
+                    REQUEST_INPUT_SCHEMA_NAME,
                     **{JSON_BODY_PARSE_NAME: (Json, ...)},
                     __base__=BaseModel
                 )
