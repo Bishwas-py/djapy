@@ -20,7 +20,7 @@ from .response import create_json_from_validation_error, create_validation_error
 
 MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
-
+ERROR_HANDLER_PREFIX = "handle_"
 
 def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
     """Extract required parameters from a function signature, skipping the first one."""
@@ -43,7 +43,7 @@ try:
             f"Errorhandler module should not contain more than {MAX_HANDLER_COUNT} handlers. "
             f"We discourage using more than {MAX_HANDLER_COUNT} handlers in errorhandler module.")
     for f in dir(_imported_errorhandler):
-        if f.startswith('handler_'):
+        if f.startswith(ERROR_HANDLER_PREFIX):
             _errorhandler_functions.append(getattr(_imported_errorhandler, f))
 except Exception as e:
     _imported_errorhandler = None
