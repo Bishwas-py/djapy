@@ -50,6 +50,11 @@ except Exception as e:
 
 
 def handle_error(request, exception):
+    """
+    Handle custom exception assigned;
+    :param request: A django request object
+    :param exception: An exception object
+    """
     for _errorhandler_function in _errorhandler_functions:
         _function_signature = inspect.signature(_errorhandler_function)
         exception_param = _function_signature.parameters.get('exception')
