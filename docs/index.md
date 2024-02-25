@@ -10,9 +10,8 @@ be as simple as possible to use, while still being powerful enough to handle mos
 
 ```python
 @djapify
-@djapy_login_required
-def get_user(request) -> {200: UserSchema, 400: ErrorMessage}:
-    return request.user
+def get_user(request) -> {200: UserSchema}:
+    return 200, request.user
 ```
 
 It does not enforce any particular design pattern, and is designed to be as flexible as possible,
