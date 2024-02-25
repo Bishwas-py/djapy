@@ -85,7 +85,7 @@ def create_user(request, data: CreateUserSchema) -> {200: UserSchema, 400: str}:
 }
 ```
 
-## Query Parameters
+### Query Parameters
 
 You can also accept query parameters in your view function:
 

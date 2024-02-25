@@ -4,7 +4,8 @@ QUERY_BASIC_TYPES = {
     "str": "string",
     "int": "integer",
     "float": "number",
-    "bool": "boolean"
+    "bool": "boolean",
+    "datetime": "string"
 }
 
 
