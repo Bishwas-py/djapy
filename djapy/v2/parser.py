@@ -11,6 +11,8 @@ from djapy.v2.response import create_validation_error
 
 JSON_BODY_PARSE_NAME = "body"
 REQUEST_INPUT_SCHEMA_NAME = "input"
+RESPONSE_OUTPUT_SCHEMA_NAME = "output"
+JSON_OUTPUT_PARSE_NAME = "response"
 
 
 class RequestDataParser:
@@ -101,20 +103,20 @@ class ResponseDataParser:
         schema = self.schemas[self.status]
         # Create a dynamic Pydantic model with the schema
         response_model = create_model(
-            'output',
-            **{'response': (schema, ...)},
+            RESPONSE_OUTPUT_SCHEMA_NAME,
+            **{JSON_OUTPUT_PARSE_NAME: (schema, ...)},
             __base__=Schema
         )
         return response_model
 
     def parse_response_data(self) -> Dict[str, Any]:
         response_model = self.create_response_model()
-        validated_obj = response_model.parse_obj({'response': self.data})
+        validated_obj = response_model.parse_obj({JSON_OUTPUT_PARSE_NAME: self.data})
 
         # Deconstruct the object data
         destructured_object_data = validated_obj.dict()
 
-        return destructured_object_data.get('response')
+        return destructured_object_data.get(JSON_OUTPUT_PARSE_NAME)
 
 # def extract_and_validate_request_params(request, required_params, view_kwargs):
 #     """
