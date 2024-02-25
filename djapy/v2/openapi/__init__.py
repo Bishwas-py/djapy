@@ -2,7 +2,9 @@ import inspect
 import json
 import re
 
-from django.urls import URLPattern, get_resolver
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.urls import URLPattern, get_resolver, path
 from pydantic import create_model
 
 from djapy.schema import Schema
@@ -139,8 +141,8 @@ class Info:
 
 class OpenAPI:
     openapi = "3.1.0"
-    description = "This API is a powerful"
-    info = Info("My API", "1.0.0", description)
+    description = "Powerful djapy powered API, built with Django and Pydantic"
+    info = Info("Djapy", "1.0.0", description)
     paths = {}
     components = {"schemas": {}}
     definitions = {}
@@ -179,6 +181,24 @@ class OpenAPI:
             'components': self.components,
             '$defs': self.definitions
         }
+
+    def set_basic_info(self, title: str, description):
+        self.info.title = title
+        self.info.description = description
+
+    def get_openapi(self, request):
+        return JsonResponse(self.dict())
+
+    @staticmethod
+    def render_swagger_ui(request):
+        return render(request, 'djapy/swagger_cdn.html')
+
+    @property
+    def url(self):
+        return [
+            path('openapi.json', self.get_openapi, name='openapi'),
+            path('swagger/', self.render_swagger_ui, name='swagger'),
+        ]
 
 
 openapi = OpenAPI()
