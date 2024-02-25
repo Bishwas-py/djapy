@@ -9,6 +9,8 @@ from djapy.schema import Schema
 from djapy.v2.type_check import schema_type
 from djapy.v2.response import create_validation_error
 
+JSON_BODY_PARSE_NAME = "body"
+
 
 class RequestDataParser:
     query_data = {}
@@ -39,7 +41,6 @@ class RequestDataParser:
         Parse the request data and validate it with the data model.
         """
         data = self.get_request_data()
-
 
         #  make sure there is only one schema in the required_params
         # if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
@@ -73,13 +74,13 @@ class RequestDataParser:
             elif request_body := self.request.body.decode():
                 json_modal_schema = create_model(
                     'input',
-                    **{'body': (Json, ...)},
+                    **{JSON_BODY_PARSE_NAME: (Json, ...)},
                     __base__=BaseModel
                 )
                 validated_obj = json_modal_schema.parse_obj({
-                    'body': request_body
+                    JSON_BODY_PARSE_NAME: request_body
                 })
-                self.data.update(validated_obj.dict().get('body'))
+                self.data.update(validated_obj.dict().get(JSON_BODY_PARSE_NAME))
         return {
             **self.query_data,
             **self.line_kwargs,
