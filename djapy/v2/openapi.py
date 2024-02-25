@@ -1,7 +1,7 @@
 import json
 import re
 
-from django.urls import URLPattern, get_resolver, resolve
+from django.urls import URLPattern, get_resolver
 from pydantic import create_model
 
 from djapy.schema import Schema
@@ -34,7 +34,7 @@ class Path:
         self.summary = "Register and login user"
         self.export_components = {}
         self.export_definitions = {}
-        self.parameters = []
+        self.parameters = self.get_parameters(url_pattern.callback)
         self.responses = self.get_responses(url_pattern.callback)
         self.request_body = self.get_request_body(url_pattern.callback)
 
@@ -54,13 +54,42 @@ class Path:
         }
         return request_body
 
+    def get_parameters(self, view_func):
+        parameters = []
+        for param in getattr(view_func, 'required_params', []):
+            if hasattr(param.annotation, 'Config') and getattr(param.annotation.Config, 'is_query', False):
+                schema = param.annotation
+                schema_name = schema.__name__
+                self.export_definitions[schema_name] = schema.schema()
+                schema = {"$ref": f"#/components/schemas/{schema_name}"}
+            else:
+                # schema = {"type": BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)}
+                query_model = create_model(
+                    'openapi_query_model',
+                    **{param.name: (param.annotation, ...)},
+                    __base__=Schema
+                )
+                prepared_schema = query_model.schema(ref_template="#/components/schemas/{model}")
+                if "$defs" in prepared_schema:
+                    self.export_components.update(prepared_schema.pop("$defs"))
+                schema = prepared_schema['properties'][param.name]
+
+            parameter = {
+                "name": param.name,
+                "in": "path" if self.url_pattern.pattern.regex.pattern.find(param.name) != -1 else "query",
+                "required": self.url_pattern.pattern.regex.pattern.find(param.name) != -1,
+                "schema": schema
+            }
+            parameters.append(parameter)
+        return parameters
+
     def make_path_name_from_url(self) -> str:
         """
         :param url_: A URLResolver object
         :return: A string that represents the path name of the url
         """
-        new_path = re.sub('<int:(.+?)>', '{\g<1>}', str(self.url_pattern.pattern))
-        return new_path
+        new_path = re.sub('<(.+?):(.+?)>', '{\g<2>}', str(self.url_pattern.pattern))
+        return "/" + new_path
 
     def get_responses(self, view_func):
         responses = {}
