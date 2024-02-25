@@ -49,6 +49,7 @@ class RequestDataParser:
             }
         else:
             data_model = self.create_data_model()
+            print(data_model.schema(), data)
             validated_obj = data_model.parse_obj(data)
             destructured_object_data = {
                 param.name: getattr(validated_obj, param.name)
@@ -62,8 +63,7 @@ class RequestDataParser:
         """
         if self.view_kwargs:
             self.line_kwargs.update(self.view_kwargs)
-        if self.request.method == 'GET':
-            self.query_data.update(self.request.GET.dict())
+        self.query_data.update(self.request.GET.dict())
 
         if self.request.method != 'GET':
             if self.request.POST:
