@@ -1,8 +1,10 @@
 import inspect
 import json
 import re
+from pathlib import Path
+from typing import Optional
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import URLPattern, get_resolver, path, reverse
 from pydantic import create_model
@@ -10,8 +12,10 @@ from pydantic import create_model
 from djapy.schema import Schema
 from djapy.v2.type_check import is_param_query_type, param_schema, schema_type
 
+ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
 
-class Path:
+
+class OpenApiPath:
     path: str
     methods: str
     summary: str
@@ -162,7 +166,7 @@ class OpenAPI:
     def generate_paths(self, url_pattern: list[URLPattern]):
         for url_pattern in url_pattern:
             if getattr(url_pattern.callback, 'djapy', False) and getattr(url_pattern.callback, 'openapi', False):
-                path = Path(url_pattern, url_pattern.callback.djapy_allowed_method)
+                path = OpenApiPath(url_pattern, url_pattern.callback.djapy_allowed_method)
                 if path.export_definitions:
                     self.definitions.update(path.export_definitions)
                 if path.export_components:
@@ -202,7 +206,7 @@ class OpenAPI:
 
         openapi_json_url = reverse('djapy:openapi')
         absolute_openapi_json_url = request.build_absolute_uri(openapi_json_url)
-        return render(request, 'djapy/swagger_cdn.html', {
+        return _render_cdn_template(request, ABS_TPL_PATH / 'swagger_cdn.html', {
             "swagger_settings": json.dumps({
                 "url": absolute_openapi_json_url,
                 "layout": "BaseLayout",
@@ -219,6 +223,17 @@ class OpenAPI:
     @property
     def urls(self):
         return self.get_urls(), "djapy", "djapy-openapi"
+
+
+def _render_cdn_template(
+        request: HttpRequest, template_path: Path, context: Optional[dict] = None
+) -> HttpResponse:
+    "this is helper to find and render html template when ninja is not in INSTALLED_APPS"
+    from django.template import RequestContext, Template
+
+    tpl = Template(template_path.read_text())
+    html = tpl.render(RequestContext(request, context))
+    return HttpResponse(html)
 
 
 openapi = OpenAPI()
