@@ -1,3 +1,4 @@
+import inspect
 import json
 import re
 
@@ -18,14 +19,23 @@ class Path:
     export_components: dict
     export_definitions: dict
 
+    def assign_docstrings(self):
+        docstring = inspect.getdoc(self.url_pattern.callback)
+        if docstring:
+            lines = docstring.split('\n')
+            self.summary = lines[0]
+            self.explanation = '\n'.join(lines[1:])
+
     def __init__(self, url_pattern: URLPattern, methods: str):
         self.url_pattern = url_pattern
         self.path = self.make_path_name_from_url()
         self.methods = methods
-        self.summary = "Register and login user"
         self.export_components = {}
         self.export_definitions = {}
         self.parameters_keys = []
+        self.summary = ""
+        self.explanation = ""
+        self.assign_docstrings()
         self.parameters = self.get_parameters(url_pattern.callback)
         self.responses = self.get_responses(url_pattern.callback)
         self.request_body = self.get_request_body(url_pattern.callback)
@@ -104,6 +114,7 @@ class Path:
         return {
             method.lower(): {
                 "summary": self.summary,
+                "description": self.explanation,
                 "operationId": self.operation_id,
                 "responses": self.responses,
                 "parameters": self.parameters,
