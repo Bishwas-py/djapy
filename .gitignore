@@ -1,2 +1,5 @@
 !djapy/*.*
 *.*
+!mkdocs.yml
+!README.md
+!requirements.txt
