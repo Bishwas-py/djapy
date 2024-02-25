@@ -38,13 +38,20 @@ class RequestDataParser:
         """
         Parse the request data and validate it with the data model.
         """
-        data_model = self.create_data_model()
         data = self.get_request_data()
-        validated_obj = data_model.parse_obj(data)
-        destructured_object_data = {
-            param.name: getattr(validated_obj, param.name)
-            for param in self.required_params
-        }
+
+        if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
+            validated_obj = schema.validate(data)
+            destructured_object_data = {
+                self.required_params[0].name: validated_obj
+            }
+        else:
+            data_model = self.create_data_model()
+            validated_obj = data_model.parse_obj(data)
+            destructured_object_data = {
+                param.name: getattr(validated_obj, param.name)
+                for param in self.required_params
+            }
         return destructured_object_data
 
     def get_request_data(self):
@@ -61,8 +68,8 @@ class RequestDataParser:
                 self.data.update(self.request.POST.dict())
             elif request_body := self.request.body.decode():
                 json_modal_schema = create_model(
-                    'json',
-                    **{'json': (Json, ...)},
+                    'input',
+                    **{'body': (Json, ...)},
                     __base__=BaseModel
                 )
                 validated_obj = json_modal_schema.parse_obj({
@@ -106,7 +113,6 @@ class ResponseDataParser:
         destructured_object_data = validated_obj.dict()
 
         return destructured_object_data.get('response')
-
 
 # def extract_and_validate_request_params(request, required_params, view_kwargs):
 #     """

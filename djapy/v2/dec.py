@@ -94,6 +94,7 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
             try:
                 parser = RequestDataParser(request, required_params, view_kwargs)
+                parser.view_kwargs
                 _data_kwargs = parser.parse_request_data()
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
                 if isinstance(response_from_view_func, tuple):
