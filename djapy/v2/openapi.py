@@ -6,14 +6,11 @@ from pydantic import create_model
 
 from djapy.schema import Schema
 
-BASIC_TYPES = {
+QUERY_BASIC_TYPES = {
     "str": "string",
     "int": "integer",
     "float": "number",
-    "bool": "boolean",
-    "list": "array",
-    "dict": "object",
-    "tuple": "array",
+    "bool": "boolean"
 }
 
 
@@ -34,14 +31,23 @@ class Path:
         self.summary = "Register and login user"
         self.export_components = {}
         self.export_definitions = {}
+        self.parameters_keys = []
         self.parameters = self.get_parameters(url_pattern.callback)
         self.responses = self.get_responses(url_pattern.callback)
         self.request_body = self.get_request_body(url_pattern.callback)
 
     def get_request_body(self, view_func):
+        request_model_dict = {}
+        for param in view_func.required_params:
+            if param.name in self.parameters_keys:
+                continue
+            request_model_dict[param.name] = param.annotation
+        if not request_model_dict:
+            return {}
+
         request_model = create_model(
             'openapi_request_model',
-            **{param.name: (param.annotation, ...) for param in view_func.required_params},
+            **request_model_dict,
             __base__=Schema
         )
         prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
@@ -57,30 +63,16 @@ class Path:
     def get_parameters(self, view_func):
         parameters = []
         for param in getattr(view_func, 'required_params', []):
-            if hasattr(param.annotation, 'Config') and getattr(param.annotation.Config, 'is_query', False):
-                schema = param.annotation
-                schema_name = schema.__name__
-                self.export_definitions[schema_name] = schema.schema()
-                schema = {"$ref": f"#/components/schemas/{schema_name}"}
-            else:
-                # schema = {"type": BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)}
-                query_model = create_model(
-                    'openapi_query_model',
-                    **{param.name: (param.annotation, ...)},
-                    __base__=Schema
-                )
-                prepared_schema = query_model.schema(ref_template="#/components/schemas/{model}")
-                if "$defs" in prepared_schema:
-                    self.export_components.update(prepared_schema.pop("$defs"))
-                schema = prepared_schema['properties'][param.name]
-
-            parameter = {
-                "name": param.name,
-                "in": "path" if self.url_pattern.pattern.regex.pattern.find(param.name) != -1 else "query",
-                "required": self.url_pattern.pattern.regex.pattern.find(param.name) != -1,
-                "schema": schema
-            }
-            parameters.append(parameter)
+            if param.annotation.__name__ in QUERY_BASIC_TYPES:
+                schema = {"type": QUERY_BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)}
+                parameter = {
+                    "name": param.name,
+                    "in": "path" if self.url_pattern.pattern.regex.pattern.find(param.name) != -1 else "query",
+                    "required": True,
+                    "schema": schema
+                }
+                self.parameters_keys.append(param.name)
+                parameters.append(parameter)
         return parameters
 
     def make_path_name_from_url(self) -> str:
