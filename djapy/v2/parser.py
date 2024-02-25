@@ -6,6 +6,7 @@ from pydantic import ValidationError, create_model, BaseModel
 from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
+from djapy.v2.query import is_param_query_type
 from djapy.v2.response import create_validation_error
 
 
@@ -20,12 +21,14 @@ class RequestDataParser:
         """
         Create a Pydantic model on the basis of required parameters.
         """
+        input_data_model_dict = {}
+        for param in self.required_params:
+            input_data_model_dict[param.name] = (param.annotation, ...)
         data_model = create_model(
             'input',
-            **{param.name: (param.annotation, ...) for param in self.required_params},
+            **input_data_model_dict,
             __base__=Schema
         )
-        print(data_model.schema_json())
         return data_model
 
     def parse_request_data(self):

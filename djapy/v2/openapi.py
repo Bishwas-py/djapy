@@ -5,13 +5,7 @@ from django.urls import URLPattern, get_resolver
 from pydantic import create_model
 
 from djapy.schema import Schema
-
-QUERY_BASIC_TYPES = {
-    "str": "string",
-    "int": "integer",
-    "float": "number",
-    "bool": "boolean"
-}
+from djapy.v2.query import is_param_query_type, param_schema
 
 
 class Path:
@@ -64,8 +58,8 @@ class Path:
     def get_parameters(self, view_func):
         parameters = []
         for param in getattr(view_func, 'required_params', []):
-            if param.annotation.__name__ in QUERY_BASIC_TYPES:
-                schema = {"type": QUERY_BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)}
+            if is_param_query_type(param):
+                schema = param_schema(param)
                 parameter = {
                     "name": param.name,
                     "in": "path" if self.url_pattern.pattern.regex.pattern.find(param.name) != -1 else "query",
