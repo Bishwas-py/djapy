@@ -4,7 +4,7 @@ import re
 
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.urls import URLPattern, get_resolver, path
+from django.urls import URLPattern, get_resolver, path, reverse
 from pydantic import create_model
 
 from djapy.schema import Schema
@@ -191,7 +191,23 @@ class OpenAPI:
 
     @staticmethod
     def render_swagger_ui(request):
-        return render(request, 'djapy/swagger_cdn.html')
+        # `django/dj/` ->
+        # django/dj/swagger/
+        # django/dj/openapi.json
+
+        # `django-` ->
+        # django-swagger/
+        # django-openapi.json
+
+        openapi_json_url = reverse('djapy:openapi')
+        absolute_openapi_json_url = request.build_absolute_uri(openapi_json_url)
+        return render(request, 'djapy/swagger_cdn.html', {
+            "swagger_settings": json.dumps({
+                "url": absolute_openapi_json_url,
+                "layout": "BaseLayout",
+                "deepLinking": "true",
+            })
+        })
 
     def get_urls(self):
         return [
