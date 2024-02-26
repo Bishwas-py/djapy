@@ -134,11 +134,11 @@ def djapify(view_func: Callable = None,
         if not isinstance(schema_dict_returned, dict):
             schema_dict_returned = {200: schema_dict_returned}
 
-        view_func.djapy = True
-        view_func.openapi = openapi
-        view_func.openapi_tags = openapi_tags
-        view_func.schema = schema_dict_returned
-        view_func.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
+        _wrapped_view.djapy = True
+        _wrapped_view.openapi = openapi
+        _wrapped_view.openapi_tags = openapi_tags
+        view_func.schema = _wrapped_view.schema = schema_dict_returned
+        _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         query_schema_dict = {}
         data_schema_dict = {}
 
@@ -149,19 +149,17 @@ def djapify(view_func: Callable = None,
             else:
                 data_schema_dict[param.name] = (param.annotation, ...)
 
-        view_func.query_schema = create_model(
+        _wrapped_view.query_schema = view_func.query_schema = create_model(
             REQUEST_INPUT_SCHEMA_NAME,
             **query_schema_dict,
             __base__=Schema
         )
 
-        view_func.data_schema = create_model(
+        _wrapped_view.data_schema = view_func.data_schema = create_model(
             REQUEST_INPUT_SCHEMA_NAME,
             **data_schema_dict,
             __base__=Schema
         )
-        _wrapped_view.query_schema = view_func.query_schema
-        _wrapped_view.data_schema = view_func.data_schema
         _wrapped_view.openapi_info = openai_info
 
         _wrapped_view.djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', login_required)
