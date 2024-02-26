@@ -104,6 +104,7 @@ def djapify(view_func: Callable = None,
             try:
                 parser = RequestDataParser(request, required_params, view_kwargs)
                 _data_kwargs = parser.parse_request_data()
+                print(_data_kwargs)
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
                 if isinstance(response_from_view_func, tuple):
                     status, response = response_from_view_func

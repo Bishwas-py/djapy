@@ -6,7 +6,7 @@ from pydantic import ValidationError, create_model, BaseModel, Json
 from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
-from .type_check import schema_type
+from .type_check import schema_type, is_param_query_type
 from .response import create_validation_error
 
 JSON_BODY_PARSE_NAME = "body"
@@ -18,46 +18,64 @@ JSON_OUTPUT_PARSE_NAME = "response"
 class RequestDataParser:
     def __init__(self, request: HttpRequest, required_params: list[Parameter], view_kwargs):
         self.required_params = required_params
+        self.query_schema = None
+        self.data_schema = None
+        self.set_data_and_query_schema()
         self.view_kwargs = view_kwargs
         self.request = request
         self.query_data = {}
         self.line_kwargs = {}
         self.data = {}
 
-    def create_data_model(self):
+    def set_data_and_query_schema(self):
         """
-        Create a Pydantic model on the basis of required parameters.
+        Set the data and query schema on the basis of required parameters.
         """
-        input_data_model_dict = {}
+        query_schema_dict = {}
+        data_schema_dict = {}
         for param in self.required_params:
-            input_data_model_dict[param.name] = (param.annotation, ...)
-        data_model = create_model(
+            is_query, is_optional = is_param_query_type(param)
+            if is_query:
+                query_schema_dict[param.name] = (param.annotation, ...)
+            else:
+                data_schema_dict[param.name] = (param.annotation, ...)
+
+        self.query_schema = create_model(
             REQUEST_INPUT_SCHEMA_NAME,
-            **input_data_model_dict,
+            **query_schema_dict,
             __base__=Schema
         )
-        return data_model
+
+        self.data_schema = create_model(
+            REQUEST_INPUT_SCHEMA_NAME,
+            **data_schema_dict,
+            __base__=Schema
+        )
 
     def parse_request_data(self):
         """
         Parse the request data and validate it with the data model.
         """
-        data = self.get_request_data()
+        self.set_request_data()
         if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
-            validated_obj = schema.validate(data)
+            validated_obj = schema.validate(self.data)
             destructured_object_data = {
                 self.required_params[0].name: validated_obj
             }
         else:
-            data_model = self.create_data_model()
-            validated_obj = data_model.parse_obj(data)
+            query_data = self.query_schema.parse_obj({
+                **self.query_data,
+                **self.line_kwargs
+            })
+            data = self.data_schema.parse_obj(self.data)
+            print(data.dict())
             destructured_object_data = {
-                param.name: getattr(validated_obj, param.name)
-                for param in self.required_params
+                **query_data.dict(),
+                **data.dict()
             }
         return destructured_object_data
 
-    def get_request_data(self):
+    def set_request_data(self):
         """
         Returns all the data in the self.request.
         """
@@ -78,11 +96,6 @@ class RequestDataParser:
                     JSON_BODY_PARSE_NAME: request_body
                 })
                 self.data.update(validated_obj.dict().get(JSON_BODY_PARSE_NAME))
-        return {
-            **self.query_data,
-            **self.line_kwargs,
-            **self.data
-        }
 
 
 class ResponseDataParser:
