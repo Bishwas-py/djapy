@@ -83,12 +83,15 @@ class OpenApiPath:
     def get_parameters(self, view_func):
         parameters = []
         for param in getattr(view_func, 'required_params', []):
-            if is_param_query_type(param):
+            is_query, is_optional = is_param_query_type(param)
+            if is_query:
                 schema = param_schema(param)
+                # self.url_pattern.pattern.regex.pattern.find(param.name) != -1
+                is_url_param = re.search(param.name, str(self.url_pattern.pattern))
                 parameter = {
                     "name": param.name,
-                    "in": "path" if self.url_pattern.pattern.regex.pattern.find(param.name) != -1 else "query",
-                    "required": True,
+                    "in": "path" if is_url_param else "query",
+                    "required": bool(is_url_param) and not is_optional,
                     "schema": schema
                 }
                 self.parameters_keys.append(param.name)

@@ -1,4 +1,5 @@
 from inspect import Parameter
+from typing import Union, get_args
 
 QUERY_BASIC_TYPES = {
     "str": "string",
@@ -13,7 +14,14 @@ def is_param_query_type(param: Parameter):
     """
     Basically checks if the parameter is a basic query type.
     """
-    return param.annotation.__name__ in QUERY_BASIC_TYPES
+    if not param.annotation:
+        return False
+    annotation = param.annotation
+    is_optional = getattr(annotation, "__origin__", None) is Union
+    if is_optional:
+        # Get the actual type for Optional[T]
+        annotation = get_args(annotation)[0]
+    return annotation.__name__ in QUERY_BASIC_TYPES, is_optional
 
 
 def param_schema(param: Parameter):
