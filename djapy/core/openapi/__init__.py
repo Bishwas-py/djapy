@@ -217,7 +217,7 @@ class OpenAPI:
     def get_urls(self):
         return [
             path('openapi.json', self.get_openapi, name='openapi'),
-            path('swagger/', self.render_swagger_ui, name='swagger'),
+            path('', self.render_swagger_ui, name='swagger'),
         ]
 
     @property
