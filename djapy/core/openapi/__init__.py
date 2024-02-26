@@ -91,11 +91,13 @@ class OpenApiPath:
         }
 
     def set_parameters(self):
-        self.set_parameters_from_required_params()
         self.set_parameters_from_parent_url_pattern()
+        self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
         for param in getattr(self.view_func, 'required_params', []):
+            if param.name in self.parameters_keys:
+                continue
             is_query, is_optional = is_param_query_type(param)
             if is_query:
                 schema = basic_query_schema(param)
@@ -109,8 +111,6 @@ class OpenApiPath:
             pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
             if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
-                if name in self.parameters_keys:
-                    continue
                 schema = basic_query_schema(_type)
                 parameter = self.make_parameters(name, False, schema, True)  # Assuming url params are not optional
                 self.parameters_keys.append(name)
