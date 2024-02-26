@@ -106,7 +106,8 @@ class OpenApiPath:
             pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
             match = re.search(pattern, str(url_pattern.pattern))
             if match:
-                name, _type = match.groups()
+                _type, name = match.groups()
+                print(_type, name)
                 schema = {"type": _type}
                 parameter = self.make_parameters(name, False, schema, True)  # Assuming url params are not optional
                 self.parameters_keys.append(name)
