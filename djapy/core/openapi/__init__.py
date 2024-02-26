@@ -12,7 +12,7 @@ from django.urls import URLPattern, get_resolver, path, reverse
 from pydantic import create_model
 
 from djapy.schema import Schema
-from ..type_check import is_param_query_type, param_schema, schema_type
+from ..type_check import is_param_query_type, basic_query_schema, schema_type
 
 ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
 
@@ -80,22 +80,38 @@ class OpenApiPath:
         }
         return request_body
 
+    @staticmethod
+    def make_parameters(name, is_optional, schema, is_url_param):
+        return {
+            "name": name,
+            "in": "path" if is_url_param else "query",
+            "required": bool(is_url_param) and not is_optional,
+            "schema": schema
+        }
+
     def get_parameters(self, view_func):
         parameters = []
         for param in getattr(view_func, 'required_params', []):
             is_query, is_optional = is_param_query_type(param)
             if is_query:
-                schema = param_schema(param)
-                # self.url_pattern.pattern.regex.pattern.find(param.name) != -1
+                schema = basic_query_schema(param)
                 is_url_param = re.search(param.name, str(self.url_pattern.pattern))
-                parameter = {
-                    "name": param.name,
-                    "in": "path" if is_url_param else "query",
-                    "required": bool(is_url_param) and not is_optional,
-                    "schema": schema
-                }
+                print(param.name, is_url_param)
+                parameter = self.make_parameters(param.name, is_optional, schema, is_url_param)
                 self.parameters_keys.append(param.name)
                 parameters.append(parameter)
+
+        # Extract parameters from self.parent_url_pattern
+        for url_pattern in self.parent_url_pattern or []:
+            pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+            match = re.search(pattern, str(url_pattern.pattern))
+            if match:
+                name, _type = match.groups()
+                schema = {"type": _type}
+                parameter = self.make_parameters(name, False, schema, True)  # Assuming url params are not optional
+                self.parameters_keys.append(name)
+                parameters.append(parameter)
+
         return parameters
 
     def get_path_string(self) -> str:

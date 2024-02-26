@@ -102,6 +102,7 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             if djapy_has_login_required and not request.user.is_authenticated:
                 return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
+
             try:
                 parser = RequestDataParser(request, required_params, view_kwargs)
                 _data_kwargs = parser.parse_request_data()
