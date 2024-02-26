@@ -51,7 +51,8 @@ class OpenApiPath:
         self.set_docstrings()
         self.set_tags()
         self.path = self.get_path_string()
-        self.parameters = self.get_parameters(url_pattern.callback)
+        self.parameters = []
+        self.set_parameters()
         self.responses = self.get_responses(url_pattern.callback)
         self.request_body = self.get_request_body(url_pattern.callback)
 
@@ -89,31 +90,31 @@ class OpenApiPath:
             "schema": schema
         }
 
-    def get_parameters(self, view_func):
-        parameters = []
-        for param in getattr(view_func, 'required_params', []):
+    def set_parameters(self):
+        self.set_parameters_from_required_params()
+        self.set_parameters_from_parent_url_pattern()
+
+    def set_parameters_from_required_params(self):
+        for param in getattr(self.view_func, 'required_params', []):
             is_query, is_optional = is_param_query_type(param)
             if is_query:
                 schema = basic_query_schema(param)
                 is_url_param = re.search(param.name, str(self.url_pattern.pattern))
-                print(param.name, is_url_param)
                 parameter = self.make_parameters(param.name, is_optional, schema, is_url_param)
                 self.parameters_keys.append(param.name)
-                parameters.append(parameter)
+                self.parameters.append(parameter)
 
-        # Extract parameters from self.parent_url_pattern
-        for url_pattern in self.parent_url_pattern or []:
+    def set_parameters_from_parent_url_pattern(self):
+        for url_pattern in self.parent_url_pattern or [self.url_pattern]:
             pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
-            match = re.search(pattern, str(url_pattern.pattern))
-            if match:
+            if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
-                print(_type, name)
-                schema = {"type": _type}
+                if name in self.parameters_keys:
+                    continue
+                schema = basic_query_schema(_type)
                 parameter = self.make_parameters(name, False, schema, True)  # Assuming url params are not optional
                 self.parameters_keys.append(name)
-                parameters.append(parameter)
-
-        return parameters
+                self.parameters.append(parameter)
 
     def get_path_string(self) -> str:
         url_path_string = ""
