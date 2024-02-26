@@ -5,7 +5,7 @@ It is flawless, it is perfect, it is beautiful.
 
 Here's how it looks like:
 
-![img.png](img.png)
+![Djapy Swagger Support](swagger_screenshot.png)
 
 And here's how you can use it:
 
@@ -26,3 +26,34 @@ urlpatterns = [
 ```
 
 And that's it. You can now access your swagger documentation at the url you've set in your `urls.py` file.
+
+## Tags and descriptions
+
+You can add tags and descriptions to your endpoints by using the `openapi_info` variable.
+
+```python
+openapi_info = {
+    "tags": ["todos"],
+    "tags_info": {
+        "todos": {
+            "description": "Operations about todos",
+            "name": "Todos",
+            "externalDocs": {
+                "description": "Find out more",
+                "url": "http://example.com"
+            }
+        }
+    }
+}
+```
+
+Also, you can assign tags name using `@djapigy` decorator.
+
+```python
+from djapy import djapigy
+
+
+@djapify(openapi_tags=["todos"])
+```
+
+It's that simple.

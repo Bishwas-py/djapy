@@ -57,3 +57,4 @@ copyright: |
 nav:
   - Introduction: index.md
   - Usage: usage.md
+  - Swagger: swagger.md
