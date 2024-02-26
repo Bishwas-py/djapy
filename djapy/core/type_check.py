@@ -34,8 +34,12 @@ def basic_query_schema(param: Parameter | str, default=None):
     return {"type": type_name or default}
 
 
-def schema_type(param: Parameter):
-    if hasattr(param.annotation, "Config") and (
-            issubclass(param.annotation, Schema) or isinstance(param.annotation, Schema)):
-        return param.annotation
+def schema_type(param: Parameter | object):
+    if isinstance(param, Parameter):
+        object_ = param.annotation
+    else:
+        object_ = param
+    if hasattr(object_, "Config") and (
+            issubclass(object_, Schema) or isinstance(object_, Schema)):
+        return object_
     return None

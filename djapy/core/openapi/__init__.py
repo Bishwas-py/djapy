@@ -55,7 +55,7 @@ class OpenApiPath:
         self.path = self.get_path_string()
         self.parameters = []
         self.set_parameters()
-        self.responses = self.get_responses(url_pattern.callback)
+        self.responses = self.get_responses()
         self.request_body = self.get_request_body()
 
     def get_request_body(self):
@@ -85,20 +85,10 @@ class OpenApiPath:
         self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
-        # for param in getattr(self.view_func, 'required_params', []):
-        #     if param.name in self.parameters_keys:
-        #         continue
-        #     is_query, is_optional = is_param_query_type(param)
-        #     if is_query:
-        #         schema = basic_query_schema(param)
-        #         is_url_param = re.search(param.name, str(self.url_pattern.pattern))
-        #         parameter = self.make_parameters(param.name, is_optional, schema, is_url_param)
-        #         self.parameters_keys.append(param.name)
-        #         self.parameters.append(parameter)
-        query_schema_ = self.view_func.query_schema.schema(ref_template=REF_MODAL_TEMPLATE)
-        print(query_schema_)
-        if query_schema_["properties"]:
-            for name, schema in query_schema_["properties"].items():
+        prepared_query_schema = self.view_func.query_schema.schema(
+            ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
+        if prepared_query_schema["properties"]:
+            for name, schema in prepared_query_schema["properties"].items():
                 is_url_param = re.search(name, str(self.url_pattern.pattern))
                 parameter = self.make_parameters(name, False, schema, is_url_param)
                 self.parameters_keys.append(name)
@@ -146,10 +136,10 @@ class OpenApiPath:
         }
         return status_description.get(status, "Unknown")
 
-    def get_responses(self, view_func):
+    def get_responses(self):
         responses = {}
-        for status, schema in getattr(view_func, 'schema', {}).items():
-            if hasattr(schema, 'Info') and getattr(schema.Info, 'description', ""):
+        for status, schema in self.url_pattern.callback.schema.items():
+            if schema_type(schema):
                 description = schema.Info.description
             else:
                 description = self.make_description_from_status(status)
