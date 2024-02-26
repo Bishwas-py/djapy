@@ -34,6 +34,10 @@ class OpenApiPath:
 
     def __init__(self, url_pattern: URLPattern, methods: str):
         self.url_pattern = url_pattern
+        self.operation_id = self.url_pattern.callback.__module__ + "." + self.url_pattern.callback.__name__
+        explicit_tags = getattr(self.url_pattern.callback, 'openapi_tags', None) or [
+            self.url_pattern.callback.__module__]
+        self.tags = explicit_tags
         self.path = self.make_path_name_from_url()
         self.methods = methods
         self.export_components = {}
@@ -135,7 +139,7 @@ class OpenApiPath:
         return responses
 
     def dict(self):
-        self.operation_id = self.url_pattern.callback.__name__
+
         return {
             method.lower(): {
                 "summary": self.summary,
@@ -143,7 +147,8 @@ class OpenApiPath:
                 "operationId": self.operation_id,
                 "responses": self.responses,
                 "parameters": self.parameters,
-                "requestBody": self.request_body
+                "requestBody": self.request_body,
+                "tags": self.tags
             } for method in self.methods
         }
 
