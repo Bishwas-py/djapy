@@ -1,8 +1,10 @@
+import base64
 import inspect
 import json
 import re
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -28,27 +30,30 @@ class OpenApiPath:
     export_tags: list
 
     def assign_docstrings(self):
-        docstring = inspect.getdoc(self.url_pattern.callback)
+        docstring = inspect.getdoc(self.view_func)
         if docstring:
             lines = docstring.split('\n')
             self.summary = lines[0]
             self.explanation = '\n'.join(lines[1:])
 
-    def __init__(self, url_pattern: URLPattern, methods: str):
+    def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
         self.url_pattern = url_pattern
-        self.operation_id = self.url_pattern.callback.__module__ + "." + self.url_pattern.callback.__name__
-        openai_info = getattr(self.url_pattern.callback, 'openapi_info', {})
-        explicit_tags = (getattr(self.url_pattern.callback, 'openapi_tags', None) or openai_info.get('tags')
-                         or [self.url_pattern.callback.__module__])
+        self.parent_url_pattern = parent_url_pattern
+        self.view_func = url_pattern.callback
+        alphanumeric_id = base64.b64encode(str(id(self.view_func)).encode()).decode()
+        self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}_{self.url_pattern.name}_{alphanumeric_id}"
+        openai_info = getattr(self.view_func, 'openapi_info', {})
+        explicit_tags = (getattr(self.view_func, 'openapi_tags', None) or openai_info.get('tags')
+                         or [self.view_func.__module__])
         self.export_tags = openai_info.get('tags_info', [])
         self.tags = explicit_tags
-        self.path = self.make_path_name_from_url()
-        self.methods = methods
+        self.methods = url_pattern.callback.djapy_allowed_method
         self.export_components = {}
         self.export_definitions = {}
         self.parameters_keys = []
         self.summary = ""
         self.explanation = ""
+        self.path = self.get_path_string()
         self.assign_docstrings()
         self.parameters = self.get_parameters(url_pattern.callback)
         self.responses = self.get_responses(url_pattern.callback)
@@ -94,13 +99,22 @@ class OpenApiPath:
                 parameters.append(parameter)
         return parameters
 
-    def make_path_name_from_url(self) -> str:
-        """
-        :param url_: A URLResolver object
-        :return: A string that represents the path name of the url
-        """
-        new_path = re.sub('<(.+?):(.+?)>', '{\g<2>}', str(self.url_pattern.pattern))
-        return "/" + new_path
+    def get_path_string(self) -> str:
+        url_path_string = ""
+        for url_pattern in self.parent_url_pattern or []:
+            url_path_string += self.format_pattern(url_pattern)
+        url_path_string += self.format_pattern(self.url_pattern)
+        if not url_path_string.startswith('/'):
+            url_path_string = '/' + url_path_string
+        return url_path_string
+
+    def format_pattern(self, url_pattern) -> str:
+        pattern = '[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
+        match = re.search(pattern, str(url_pattern.pattern))
+        if match:
+            return re.sub(pattern, '{' + match.group('variable') + '}', str(url_pattern.pattern))
+        else:
+            return str(url_pattern.pattern)
 
     @staticmethod
     def make_description_from_status(status: int) -> str:
@@ -124,7 +138,6 @@ class OpenApiPath:
                 description = schema.Info.description
             else:
                 description = self.make_description_from_status(status)
-            print(description)
             response_model = create_model(
                 'openapi_response_model',
                 **{'response': (schema, ...)},
@@ -184,28 +197,27 @@ class OpenAPI:
         self.resolved_url = get_resolver()
 
     @staticmethod
-    def make_path_name_from_url(url_: URLPattern) -> str:
-        """
-        :param url_: A URLResolver object
-        :return: A string that represents the path name of the url
-        """
-        new_path = re.sub('<int:(.+?)>', '{\g<1>}', str(url_.pattern))
-        return new_path
+    def is_djapy_openapi(view_func):
+        return getattr(view_func, 'djapy', False) and getattr(view_func, 'openapi', False)
 
-    def generate_paths(self, url_pattern: list[URLPattern]):
-        for url_pattern in url_pattern:
-            if getattr(url_pattern.callback, 'djapy', False) and getattr(url_pattern.callback, 'openapi', False):
-                path = OpenApiPath(url_pattern, url_pattern.callback.djapy_allowed_method)
-                if path.export_definitions:
-                    self.definitions.update(path.export_definitions)
-                if path.export_components:
-                    self.components["schemas"].update(path.export_components)
-                if path.export_tags:
-                    self.tags.extend(path.export_tags)
-                if getattr(url_pattern.callback, 'openapi', False):
-                    self.paths[path.path] = path.dict()
+    def set_path_and_exports(self, openapi_path: OpenApiPath):
+        if openapi_path.export_definitions:
+            self.definitions.update(path.export_definitions)
+        if openapi_path.export_components:
+            self.components["schemas"].update(openapi_path.export_components)
+        if openapi_path.export_tags:
+            self.tags.extend(openapi_path.export_tags)
+        if getattr(openapi_path.url_pattern.callback, 'openapi', False):
+            self.paths[openapi_path.path] = openapi_path.dict()
+
+    def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns: list[URLPattern] = None):
+        for url_pattern in url_patterns:
+            if self.is_djapy_openapi(url_pattern.callback):
+                openapi_path = OpenApiPath(url_pattern, parent_url_patterns)
+                self.set_path_and_exports(openapi_path)
             if hasattr(url_pattern, 'url_patterns'):
-                self.generate_paths(url_pattern.url_patterns)
+                self.generate_paths(url_pattern.url_patterns,
+                                    parent_url_patterns + [url_pattern] if parent_url_patterns else [url_pattern])
 
     def dict(self):
         self.generate_paths(self.resolved_url.url_patterns)
