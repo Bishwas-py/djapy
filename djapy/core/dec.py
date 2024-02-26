@@ -22,6 +22,7 @@ MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
 ERROR_HANDLER_PREFIX = "handle_"
 
+
 def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
     """Extract required parameters from a function signature, skipping the first one."""
     signature = inspect.signature(view_func)
@@ -86,6 +87,8 @@ def djapify(view_func: Callable = None,
 
     def decorator(view_func):
         required_params = get_required_params(view_func)
+        view_func_module = importlib.import_module(view_func.__module__)
+        openai_info = getattr(view_func_module, 'openapi_info', {})
 
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
@@ -132,6 +135,7 @@ def djapify(view_func: Callable = None,
         _wrapped_view.schema = x_schema
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         _wrapped_view.required_params = required_params
+        _wrapped_view.openapi_info = openai_info
 
         _wrapped_view.djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', login_required)
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):

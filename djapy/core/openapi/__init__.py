@@ -24,6 +24,8 @@ class OpenApiPath:
     parameters: list
     export_components: dict
     export_definitions: dict
+    tags: list
+    export_tags: list
 
     def assign_docstrings(self):
         docstring = inspect.getdoc(self.url_pattern.callback)
@@ -35,8 +37,10 @@ class OpenApiPath:
     def __init__(self, url_pattern: URLPattern, methods: str):
         self.url_pattern = url_pattern
         self.operation_id = self.url_pattern.callback.__module__ + "." + self.url_pattern.callback.__name__
-        explicit_tags = getattr(self.url_pattern.callback, 'openapi_tags', None) or [
-            self.url_pattern.callback.__module__]
+        openai_info = getattr(self.url_pattern.callback, 'openapi_info', {})
+        explicit_tags = (getattr(self.url_pattern.callback, 'openapi_tags', None) or openai_info.get('tags')
+                         or [self.url_pattern.callback.__module__])
+        self.export_tags = openai_info.get('tags_info', [])
         self.tags = explicit_tags
         self.path = self.make_path_name_from_url()
         self.methods = methods
@@ -174,6 +178,7 @@ class OpenAPI:
     paths = {}
     components = {"schemas": {}}
     definitions = {}
+    tags = []
 
     def __init__(self):
         self.resolved_url = get_resolver()
@@ -195,6 +200,8 @@ class OpenAPI:
                     self.definitions.update(path.export_definitions)
                 if path.export_components:
                     self.components["schemas"].update(path.export_components)
+                if path.export_tags:
+                    self.tags.extend(path.export_tags)
                 if getattr(url_pattern.callback, 'openapi', False):
                     self.paths[path.path] = path.dict()
             if hasattr(url_pattern, 'url_patterns'):
@@ -207,7 +214,8 @@ class OpenAPI:
             'info': self.info.dict(),
             'paths': self.paths,
             'components': self.components,
-            '$defs': self.definitions
+            '$defs': self.definitions,
+            'tags': self.tags
         }
 
     def set_basic_info(self, title: str, description, version="1.0.0"):
