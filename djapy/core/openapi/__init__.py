@@ -2,6 +2,7 @@ import base64
 import inspect
 import json
 import re
+from http.client import responses
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -51,12 +52,13 @@ class OpenApiPath:
         self.export_definitions = {}
         self.parameters_keys = []
         self.request_body = {}
+        self.responses = {}
+        self.parameters = []
+        self.path = self.get_path_string()
         self.set_docstrings()
         self.set_tags()
-        self.path = self.get_path_string()
-        self.parameters = []
         self.set_parameters()
-        self.responses = self.get_responses()
+        self.set_responses()
         self.set_request_body()
 
     def set_request_body(self):
@@ -125,21 +127,9 @@ class OpenApiPath:
 
     @staticmethod
     def make_description_from_status(status: int) -> str:
-        status_description = {
-            200: "OK",
-            201: "Created",
-            204: "No Content",
-            400: "Bad Request",
-            401: "Unauthorized",
-            403: "Forbidden",
-            404: "Not Found",
-            405: "Method Not Allowed",
-            500: "Internal Server Error"
-        }
-        return status_description.get(status, "Unknown")
+        return responses.get(status, "Unknown")
 
-    def get_responses(self):
-        responses = {}
+    def set_responses(self):
         for status, schema in self.url_pattern.callback.schema.items():
             if schema_type(schema) and schema.Info.description:
                 description = schema.Info.description
@@ -155,12 +145,10 @@ class OpenApiPath:
             if "$defs" in prepared_schema:
                 self.export_components.update(prepared_schema.pop("$defs"))
             content = prepared_schema['properties']['response']
-            responses[str(status)] = {
+            self.responses[str(status)] = {
                 "description": description,
                 "content": {"application/json": {"schema": content}}
             }
-
-        return responses
 
     def dict(self):
 
