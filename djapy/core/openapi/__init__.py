@@ -50,15 +50,16 @@ class OpenApiPath:
         self.export_components = {}
         self.export_definitions = {}
         self.parameters_keys = []
+        self.request_body = {}
         self.set_docstrings()
         self.set_tags()
         self.path = self.get_path_string()
         self.parameters = []
         self.set_parameters()
         self.responses = self.get_responses()
-        self.request_body = self.get_request_body()
+        self.set_request_body()
 
-    def get_request_body(self):
+    def set_request_body(self):
         if len(self.view_func.required_params) == 1 and (schema := schema_type(self.view_func.required_params[0])):
             prepared_schema = schema.schema(ref_template=REF_MODAL_TEMPLATE)
         else:
@@ -66,10 +67,10 @@ class OpenApiPath:
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
         content = prepared_schema if prepared_schema["properties"] else {}
-        request_body = {
-            "content": {"application/json": {"schema": content}}
-        }
-        return request_body
+        if content:
+            self.request_body = {
+                "content": {"application/json": {"schema": content}}
+            }
 
     @staticmethod
     def make_parameters(name, is_optional, schema, is_url_param):
@@ -139,7 +140,7 @@ class OpenApiPath:
     def get_responses(self):
         responses = {}
         for status, schema in self.url_pattern.callback.schema.items():
-            if schema_type(schema):
+            if schema_type(schema) and schema.Info.description:
                 description = schema.Info.description
             else:
                 description = self.make_description_from_status(status)
