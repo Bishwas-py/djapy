@@ -215,14 +215,6 @@ class OpenAPI:
 
     @staticmethod
     def render_swagger_ui(request):
-        # `django/dj/` ->
-        # django/dj/swagger/
-        # django/dj/openapi.json
-
-        # `django-` ->
-        # django-swagger/
-        # django-openapi.json
-
         openapi_json_url = reverse('djapy:openapi')
         absolute_openapi_json_url = request.build_absolute_uri(openapi_json_url)
         return _render_cdn_template(request, ABS_TPL_PATH / 'swagger_cdn.html', {
