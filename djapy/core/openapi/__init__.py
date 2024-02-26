@@ -13,7 +13,7 @@ from django.urls import URLPattern, get_resolver, path, reverse
 from pydantic import create_model
 
 from djapy.schema import Schema
-from ..type_check import is_param_query_type, basic_query_schema, schema_type
+from ..type_check import basic_query_schema, schema_type
 
 ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
 
@@ -75,11 +75,11 @@ class OpenApiPath:
             }
 
     @staticmethod
-    def make_parameters(name, is_optional, schema, is_url_param):
+    def make_parameters(name, schema, required, in_="query"):
         return {
             "name": name,
-            "in": "path" if is_url_param else "query",
-            "required": bool(is_url_param) and not is_optional,
+            "in": in_,
+            "required": required,
             "schema": schema
         }
 
@@ -93,7 +93,9 @@ class OpenApiPath:
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
                 is_url_param = re.search(name, str(self.url_pattern.pattern))
-                parameter = self.make_parameters(name, False, schema, is_url_param)
+                required_ = name in prepared_query_schema.get("required", [])
+                parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
+                print(parameter)
                 self.parameters_keys.append(name)
                 self.parameters.append(parameter)
 
@@ -103,7 +105,7 @@ class OpenApiPath:
             if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
                 schema = basic_query_schema(_type)
-                parameter = self.make_parameters(name, False, schema, True)  # Assuming url params are not optional
+                parameter = self.make_parameters(name, schema, True, "path")
                 self.parameters_keys.append(name)
                 self.parameters.append(parameter)
 

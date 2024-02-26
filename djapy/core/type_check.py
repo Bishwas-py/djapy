@@ -1,3 +1,4 @@
+import types
 from inspect import Parameter
 from typing import Union, get_args
 
@@ -19,6 +20,8 @@ def is_param_query_type(param: Parameter):
     if not param.annotation:
         return False
     annotation = param.annotation
+    if isinstance(annotation, types.UnionType):
+        annotation = annotation.__args__[0]
     is_optional = getattr(annotation, "__origin__", None) is Union
     if is_optional:
         # Get the actual type for Optional[T]
