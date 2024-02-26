@@ -16,6 +16,8 @@ from ..type_check import is_param_query_type, basic_query_schema, schema_type
 
 ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
 
+REF_MODAL_TEMPLATE = "#/components/schemas/{model}"
+
 
 class OpenApiPath:
     def set_docstrings(self):
@@ -58,9 +60,9 @@ class OpenApiPath:
 
     def get_request_body(self):
         if len(self.view_func.required_params) == 1 and (schema := schema_type(self.view_func.required_params[0])):
-            prepared_schema = schema.schema(ref_template="#/components/schemas/{model}")
+            prepared_schema = schema.schema(ref_template=REF_MODAL_TEMPLATE)
         else:
-            prepared_schema = self.view_func.data_schema.schema(ref_template="#/components/schemas/{model}")
+            prepared_schema = self.view_func.data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
         content = prepared_schema if prepared_schema["properties"] else {}
@@ -83,15 +85,23 @@ class OpenApiPath:
         self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
-        for param in getattr(self.view_func, 'required_params', []):
-            if param.name in self.parameters_keys:
-                continue
-            is_query, is_optional = is_param_query_type(param)
-            if is_query:
-                schema = basic_query_schema(param)
-                is_url_param = re.search(param.name, str(self.url_pattern.pattern))
-                parameter = self.make_parameters(param.name, is_optional, schema, is_url_param)
-                self.parameters_keys.append(param.name)
+        # for param in getattr(self.view_func, 'required_params', []):
+        #     if param.name in self.parameters_keys:
+        #         continue
+        #     is_query, is_optional = is_param_query_type(param)
+        #     if is_query:
+        #         schema = basic_query_schema(param)
+        #         is_url_param = re.search(param.name, str(self.url_pattern.pattern))
+        #         parameter = self.make_parameters(param.name, is_optional, schema, is_url_param)
+        #         self.parameters_keys.append(param.name)
+        #         self.parameters.append(parameter)
+        query_schema_ = self.view_func.query_schema.schema(ref_template=REF_MODAL_TEMPLATE)
+        print(query_schema_)
+        if query_schema_["properties"]:
+            for name, schema in query_schema_["properties"].items():
+                is_url_param = re.search(name, str(self.url_pattern.pattern))
+                parameter = self.make_parameters(name, False, schema, is_url_param)
+                self.parameters_keys.append(name)
                 self.parameters.append(parameter)
 
     def set_parameters_from_parent_url_pattern(self):
@@ -149,7 +159,7 @@ class OpenApiPath:
                 __base__=Schema
             )
 
-            prepared_schema = response_model.schema(ref_template="#/components/schemas/{model}")
+            prepared_schema = response_model.schema(ref_template=REF_MODAL_TEMPLATE)
             if "$defs" in prepared_schema:
                 self.export_components.update(prepared_schema.pop("$defs"))
             content = prepared_schema['properties']['response']
