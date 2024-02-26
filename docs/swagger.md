@@ -33,17 +33,17 @@ You can add tags and descriptions to your endpoints by using the `openapi_info` 
 
 ```python
 openapi_info = {
-    "tags": ["todos"],
-    "tags_info": {
-        "todos": {
-            "description": "Operations about todos",
-            "name": "Todos",
+    "tags": ["User"],
+    "tags_info": [
+        {
+            "name": "User",
+            "description": "User related endpoints",
             "externalDocs": {
-                "description": "Find out more",
-                "url": "http://example.com"
+                "description": "Find more info here",
+                "url": "https://example.com"
             }
         }
-    }
+    ]
 }
 ```
 
