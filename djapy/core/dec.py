@@ -9,16 +9,18 @@ from pydantic_core import InitErrorDetails
 from djapy.schema import Schema
 
 from django.http import HttpRequest, JsonResponse, HttpResponse
-from pydantic import ValidationError
+from pydantic import ValidationError, create_model
 
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
 from .parser import ResponseDataParser, RequestDataParser
+from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging
 
 __all__ = ['djapify']
 
 from .response import create_json_from_validation_error, create_validation_error
+from .type_check import is_param_query_type
 
 MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
@@ -88,7 +90,7 @@ def djapify(view_func: Callable = None,
     global _errorhandler_functions
 
     def decorator(view_func):
-        required_params = get_required_params(view_func)
+        view_func.required_params = get_required_params(view_func)
         view_func_module = importlib.import_module(view_func.__module__)
         openai_info = getattr(view_func_module, 'openapi_info', {})
 
@@ -104,7 +106,7 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
 
             try:
-                parser = RequestDataParser(request, required_params, view_kwargs)
+                parser = RequestDataParser(request, view_func, view_kwargs)
                 _data_kwargs = parser.parse_request_data()
                 response_from_view_func = view_func(request, *args, **_data_kwargs)
                 if isinstance(response_from_view_func, tuple):
@@ -112,7 +114,7 @@ def djapify(view_func: Callable = None,
                 else:
                     status, response = 200, response_from_view_func
 
-                parser = ResponseDataParser(status, response, x_schema)
+                parser = ResponseDataParser(status, response, schema_dict_returned)
                 parsed_data = parser.parse_response_data()
                 return JsonResponse(parsed_data, status=status, safe=False)
 
@@ -128,16 +130,38 @@ def djapify(view_func: Callable = None,
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
-        x_schema = view_func.__annotations__.get('return', None)
-        if not isinstance(x_schema, dict):
-            x_schema = {200: x_schema}
+        schema_dict_returned = view_func.__annotations__.get('return', None)
+        if not isinstance(schema_dict_returned, dict):
+            schema_dict_returned = {200: schema_dict_returned}
 
-        _wrapped_view.djapy = True
-        _wrapped_view.openapi = openapi
-        _wrapped_view.openapi_tags = openapi_tags
-        _wrapped_view.schema = x_schema
-        _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-        _wrapped_view.required_params = required_params
+        view_func.djapy = True
+        view_func.openapi = openapi
+        view_func.openapi_tags = openapi_tags
+        view_func.schema = schema_dict_returned
+        view_func.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
+        query_schema_dict = {}
+        data_schema_dict = {}
+
+        for param in view_func.required_params:
+            is_query, is_optional = is_param_query_type(param)
+            if is_query:
+                query_schema_dict[param.name] = (param.annotation, ...)
+            else:
+                data_schema_dict[param.name] = (param.annotation, ...)
+
+        view_func.query_schema = create_model(
+            REQUEST_INPUT_SCHEMA_NAME,
+            **query_schema_dict,
+            __base__=Schema
+        )
+
+        view_func.data_schema = create_model(
+            REQUEST_INPUT_SCHEMA_NAME,
+            **data_schema_dict,
+            __base__=Schema
+        )
+        _wrapped_view.query_schema = view_func.query_schema
+        _wrapped_view.data_schema = view_func.data_schema
         _wrapped_view.openapi_info = openai_info
 
         _wrapped_view.djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', login_required)

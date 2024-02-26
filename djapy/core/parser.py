@@ -8,49 +8,19 @@ from django.http import JsonResponse, HttpRequest
 from djapy.schema import Schema
 from .type_check import schema_type, is_param_query_type
 from .response import create_validation_error
-
-JSON_BODY_PARSE_NAME = "body"
-REQUEST_INPUT_SCHEMA_NAME = "input"
-RESPONSE_OUTPUT_SCHEMA_NAME = "output"
-JSON_OUTPUT_PARSE_NAME = "response"
+from .labels import REQUEST_INPUT_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON_OUTPUT_PARSE_NAME, JSON_BODY_PARSE_NAME
 
 
 class RequestDataParser:
-    def __init__(self, request: HttpRequest, required_params: list[Parameter], view_kwargs):
-        self.required_params = required_params
-        self.query_schema = None
-        self.data_schema = None
-        self.set_data_and_query_schema()
+    def __init__(self, request: HttpRequest, view_func, view_kwargs):
+        self.required_params = view_func.required_params
+        self.query_schema = view_func.query_schema
+        self.data_schema = view_func.data_schema
         self.view_kwargs = view_kwargs
         self.request = request
         self.query_data = {}
         self.line_kwargs = {}
         self.data = {}
-
-    def set_data_and_query_schema(self):
-        """
-        Set the data and query schema on the basis of required parameters.
-        """
-        query_schema_dict = {}
-        data_schema_dict = {}
-        for param in self.required_params:
-            is_query, is_optional = is_param_query_type(param)
-            if is_query:
-                query_schema_dict[param.name] = (param.annotation, ...)
-            else:
-                data_schema_dict[param.name] = (param.annotation, ...)
-
-        self.query_schema = create_model(
-            REQUEST_INPUT_SCHEMA_NAME,
-            **query_schema_dict,
-            __base__=Schema
-        )
-
-        self.data_schema = create_model(
-            REQUEST_INPUT_SCHEMA_NAME,
-            **data_schema_dict,
-            __base__=Schema
-        )
 
     def parse_request_data(self):
         """

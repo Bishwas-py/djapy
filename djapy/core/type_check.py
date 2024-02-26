@@ -26,12 +26,12 @@ def is_param_query_type(param: Parameter):
     return annotation.__name__ in QUERY_BASIC_TYPES, is_optional
 
 
-def basic_query_schema(param: Parameter | str):
+def basic_query_schema(param: Parameter | str, default=None):
     if isinstance(param, str):
-        type_name = QUERY_BASIC_TYPES.get(param, param)
+        type_name = QUERY_BASIC_TYPES.get(param)
     else:
-        type_name = QUERY_BASIC_TYPES.get(param.annotation.__name__, param.annotation.__name__)
-    return {"type": type_name}
+        type_name = QUERY_BASIC_TYPES.get(param.annotation.__name__)
+    return {"type": type_name or default}
 
 
 def schema_type(param: Parameter):

@@ -72,6 +72,8 @@ class OpenApiPath:
                 **request_model_dict,
                 __base__=Schema
             )
+            print("request_model_dict", request_model_dict)
+            print(request_model)
             prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
