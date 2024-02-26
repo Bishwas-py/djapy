@@ -47,13 +47,19 @@ openapi_info = {
 }
 ```
 
+
 Also, you can assign tags name using `@djapigy` decorator.
 
 ```python
-from djapy import djapigy
+from djapy import djapify
 
 
 @djapify(openapi_tags=["todos"])
+def todo_list(request):
+    ...
 ```
+
+> Suggestion: You can `openapi_info > tags_info` to add more information about the tags and `@djapify` to add tags to the endpoint.
+Explain the tags in the `openapi_info` and use them accordingly with `@djapify` decorator.
 
 It's that simple.
