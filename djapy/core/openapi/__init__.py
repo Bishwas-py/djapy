@@ -43,7 +43,7 @@ class OpenApiPath:
         self.explanation = None
         self.summary = None
         self.url_pattern = url_pattern
-        self.parent_url_pattern = parent_url_pattern
+        self.parent_url_pattern = parent_url_pattern or []
         self.view_func = url_pattern.callback
         self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}"
         self.openai_info = getattr(self.view_func, 'openapi_info', {})
@@ -98,7 +98,7 @@ class OpenApiPath:
                 self.parameters.append(parameter)
 
     def set_parameters_from_parent_url_pattern(self):
-        for url_pattern in self.parent_url_pattern or [self.url_pattern]:
+        for url_pattern in self.parent_url_pattern + [self.url_pattern]:
             pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
             if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
@@ -205,14 +205,15 @@ class OpenAPI:
         if getattr(openapi_path.url_pattern.callback, 'openapi', False):
             self.paths[openapi_path.path] = openapi_path.dict()
 
-    def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns: list[URLPattern] = None):
+    def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns=None):
+        if parent_url_patterns is None:
+            parent_url_patterns = []
         for url_pattern in url_patterns:
             if self.is_djapy_openapi(url_pattern.callback):
                 openapi_path = OpenApiPath(url_pattern, parent_url_patterns)
                 self.set_path_and_exports(openapi_path)
             if hasattr(url_pattern, 'url_patterns'):
-                self.generate_paths(url_pattern.url_patterns,
-                                    parent_url_patterns + [url_pattern] if parent_url_patterns else [url_pattern])
+                self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
 
     def dict(self):
         self.generate_paths(self.resolved_url.url_patterns)

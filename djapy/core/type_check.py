@@ -27,9 +27,10 @@ def is_param_query_type(param: Parameter):
 
 
 def basic_query_schema(param: Parameter | str, default=None):
+    type_name = None
     if isinstance(param, str):
         type_name = QUERY_BASIC_TYPES.get(param)
-    else:
+    elif param:
         type_name = QUERY_BASIC_TYPES.get(param.annotation.__name__)
     return {"type": type_name or default}
 
