@@ -12,3 +12,6 @@ class Schema(BaseModel):
         arbitrary_types_allowed = True
         from_attributes = True
         is_query = False
+
+    class Info:
+        description: str = ""

@@ -94,10 +94,29 @@ class OpenApiPath:
         new_path = re.sub('<(.+?):(.+?)>', '{\g<2>}', str(self.url_pattern.pattern))
         return "/" + new_path
 
+    @staticmethod
+    def make_description_from_status(status: int) -> str:
+        status_description = {
+            200: "OK",
+            201: "Created",
+            204: "No Content",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            405: "Method Not Allowed",
+            500: "Internal Server Error"
+        }
+        return status_description.get(status, "Unknown")
+
     def get_responses(self, view_func):
         responses = {}
         for status, schema in getattr(view_func, 'schema', {}).items():
-            description = "OK" if status == 200 else "Else 200"
+            if hasattr(schema, 'Info') and getattr(schema.Info, 'description', ""):
+                description = schema.Info.description
+            else:
+                description = self.make_description_from_status(status)
+            print(description)
             response_model = create_model(
                 'openapi_response_model',
                 **{'response': (schema, ...)},
