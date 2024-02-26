@@ -54,30 +54,16 @@ class OpenApiPath:
         self.parameters = []
         self.set_parameters()
         self.responses = self.get_responses(url_pattern.callback)
-        self.request_body = self.get_request_body(url_pattern.callback)
+        self.request_body = self.get_request_body()
 
-    def get_request_body(self, view_func):
-        request_model_dict = {}
-        if len(view_func.required_params) == 1 and (schema := schema_type(view_func.required_params[0])):
+    def get_request_body(self):
+        if len(self.view_func.required_params) == 1 and (schema := schema_type(self.view_func.required_params[0])):
             prepared_schema = schema.schema(ref_template="#/components/schemas/{model}")
         else:
-            for param in view_func.required_params:
-                if param.name in self.parameters_keys:
-                    continue
-                request_model_dict[param.name] = (param.annotation, ...)
-            if not request_model_dict:
-                return {}
-            request_model = create_model(
-                'openapi_request_model',
-                **request_model_dict,
-                __base__=Schema
-            )
-            print("request_model_dict", request_model_dict)
-            print(request_model)
-            prepared_schema = request_model.schema(ref_template="#/components/schemas/{model}")
+            prepared_schema = self.view_func.data_schema.schema(ref_template="#/components/schemas/{model}")
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
-        content = prepared_schema
+        content = prepared_schema if prepared_schema["properties"] else {}
         request_body = {
             "content": {"application/json": {"schema": content}}
         }
