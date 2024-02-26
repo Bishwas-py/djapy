@@ -3,6 +3,8 @@ import inspect
 import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
+
+from django.urls import reverse
 from pydantic_core import InitErrorDetails
 from djapy.schema import Schema
 
@@ -95,7 +97,6 @@ def djapify(view_func: Callable = None,
             djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-
             if request.method not in djapy_allowed_method:
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             if djapy_has_login_required and not request.user.is_authenticated:

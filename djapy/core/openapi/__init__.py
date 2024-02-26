@@ -18,43 +18,39 @@ ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
 
 
 class OpenApiPath:
-    path: str
-    methods: str
-    summary: str
-    operation_id: str
-    responses: dict
-    parameters: list
-    export_components: dict
-    export_definitions: dict
-    tags: list
-    export_tags: list
-
-    def assign_docstrings(self):
+    def set_docstrings(self):
         docstring = inspect.getdoc(self.view_func)
         if docstring:
             lines = docstring.split('\n')
             self.summary = lines[0]
             self.explanation = '\n'.join(lines[1:])
+        else:
+            self.summary = self.view_func.__name__
+            self.explanation = ""
+
+    def set_tags(self):
+        explicit_tags = (getattr(self.view_func, 'openapi_tags', None) or self.openai_info.get('tags')
+                         or [self.view_func.__module__])
+        self.tags = explicit_tags
+        self.export_tags = self.openai_info.get('tags_info', [])
 
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
+        self.export_tags = None
+        self.tags = None
+        self.explanation = None
+        self.summary = None
         self.url_pattern = url_pattern
         self.parent_url_pattern = parent_url_pattern
         self.view_func = url_pattern.callback
-        alphanumeric_id = base64.b64encode(str(id(self.view_func)).encode()).decode()
-        self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}_{self.url_pattern.name}_{alphanumeric_id}"
-        openai_info = getattr(self.view_func, 'openapi_info', {})
-        explicit_tags = (getattr(self.view_func, 'openapi_tags', None) or openai_info.get('tags')
-                         or [self.view_func.__module__])
-        self.export_tags = openai_info.get('tags_info', [])
-        self.tags = explicit_tags
+        self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}"
+        self.openai_info = getattr(self.view_func, 'openapi_info', {})
         self.methods = url_pattern.callback.djapy_allowed_method
         self.export_components = {}
         self.export_definitions = {}
         self.parameters_keys = []
-        self.summary = ""
-        self.explanation = ""
+        self.set_docstrings()
+        self.set_tags()
         self.path = self.get_path_string()
-        self.assign_docstrings()
         self.parameters = self.get_parameters(url_pattern.callback)
         self.responses = self.get_responses(url_pattern.callback)
         self.request_body = self.get_request_body(url_pattern.callback)
