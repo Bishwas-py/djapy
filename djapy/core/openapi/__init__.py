@@ -114,7 +114,8 @@ class OpenApiPath:
             url_path_string = '/' + url_path_string
         return url_path_string
 
-    def format_pattern(self, url_pattern) -> str:
+    @staticmethod
+    def format_pattern(url_pattern: URLPattern) -> str:
         pattern = '[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
         match = re.search(pattern, str(url_pattern.pattern))
         if match:
