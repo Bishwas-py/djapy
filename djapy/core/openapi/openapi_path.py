@@ -39,7 +39,6 @@ class OpenAPI_Path:
         self.parent_url_pattern = parent_url_pattern or []
         self.view_func = url_pattern.callback
         self.openapi_tags = getattr(self.view_func, 'openapi_tags', [])
-        print(self.view_func.openapi_tags)
         self.export_tags = None
         self.export_security_schemes = {}
         self.export_components = {}

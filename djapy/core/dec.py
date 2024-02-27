@@ -26,6 +26,8 @@ from .type_check import is_param_query_type
 MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
 ERROR_HANDLER_PREFIX = "handle_"
+IN_APP_AUTH_MECHANISM_NAME = "AUTH_MECHANISM"
+IN_APP_TAGS_NAME = "TAGS"
 
 
 def get_required_params(view_func: Callable) -> List[inspect.Parameter]:
@@ -122,7 +124,7 @@ def djapify(view_func: Callable = None,
 
     view_func.required_params = get_required_params(view_func)
     view_func_module = importlib.import_module(view_func.__module__)
-    in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
+    in_app_auth_mechanism = getattr(view_func_module, IN_APP_AUTH_MECHANISM_NAME, None)
 
     def decorator(view_func):
         @wraps(view_func)
@@ -171,7 +173,7 @@ def djapify(view_func: Callable = None,
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
-        _wrapped_view.openapi_tags = tags or getattr(view_func_module, 'openapi_tags', [])
+        _wrapped_view.openapi_tags = tags or getattr(view_func_module, IN_APP_TAGS_NAME, [])
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
