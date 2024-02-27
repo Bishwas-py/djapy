@@ -32,7 +32,7 @@ class SessionAuth(BaseAuthMechanism):
             }
 
     def authorize(self, request: HttpRequest, *args, **kwargs):
-        if not request.user.is_authenticated or not all([request.user.has_perm(perm) for perm in self.permissions]):
+        if not request.user.is_authenticated or not request.user.has_perms(self.permissions):
             return {
                 "message": "Unauthorized",
                 "alias": "permission_denied"
