@@ -1,190 +1,14 @@
-import base64
-import inspect
 import json
-import re
-from http.client import responses
 from pathlib import Path
 from typing import Optional
-from uuid import uuid4
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
-from django.shortcuts import render
 from django.urls import URLPattern, get_resolver, path, reverse
-from pydantic import create_model
 
-from djapy.schema import Schema
-from ..type_check import basic_query_schema, schema_type
-
-ABS_TPL_PATH = Path(__file__).parent.parent.parent / "templates/djapy/"
-
-REF_MODAL_TEMPLATE = "#/components/schemas/{model}"
-
-
-class OpenApiPath:
-    def set_docstrings(self):
-        docstring = inspect.getdoc(self.view_func)
-        if docstring:
-            lines = docstring.split('\n')
-            self.summary = lines[0]
-            self.explanation = '\n'.join(lines[1:])
-        else:
-            self.summary = self.view_func.__name__
-            self.explanation = ""
-
-    def set_tags(self):
-        explicit_tags = (getattr(self.view_func, 'openapi_tags', None) or self.openai_info.get('tags')
-                         or [self.view_func.__module__])
-        self.tags = explicit_tags
-        self.export_tags = self.openai_info.get('tags_info', [])
-
-    def set_security(self):
-        self.security = self.openai_info.get('security', [])
-
-    def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
-        self.export_tags = None
-        self.tags = None
-        self.security = []
-        self.explanation = None
-        self.summary = None
-        self.url_pattern = url_pattern
-        self.parent_url_pattern = parent_url_pattern or []
-        self.view_func = url_pattern.callback
-        self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}"
-        self.openai_info = getattr(self.view_func, 'openapi_info', {})
-        self.methods = url_pattern.callback.djapy_allowed_method
-        self.export_components = {}
-        self.export_definitions = {}
-        self.parameters_keys = []
-        self.request_body = {}
-        self.responses = {}
-        self.parameters = []
-        self.path = None
-        self.set_path()
-        self.set_security()
-        self.set_docstrings()
-        self.set_tags()
-        self.set_parameters()
-        self.set_responses()
-        self.set_request_body()
-
-    def set_request_body(self):
-        if len(self.view_func.required_params) == 1 and (schema := schema_type(self.view_func.required_params[0])):
-            prepared_schema = schema.schema(ref_template=REF_MODAL_TEMPLATE)
-        else:
-            prepared_schema = self.view_func.data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
-        if "$defs" in prepared_schema:
-            self.export_components.update(prepared_schema.pop("$defs"))
-        content = prepared_schema if prepared_schema["properties"] else {}
-        if content:
-            self.request_body = {
-                "content": {"application/json": {"schema": content}}
-            }
-
-    @staticmethod
-    def make_parameters(name, schema, required, in_="query"):
-        return {
-            "name": name,
-            "in": in_,
-            "required": required,
-            "schema": schema
-        }
-
-    def set_parameters(self):
-        self.set_parameters_from_parent_url_pattern()
-        self.set_parameters_from_required_params()
-
-    def set_parameters_from_required_params(self):
-        prepared_query_schema = self.view_func.query_schema.schema(
-            ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
-        if prepared_query_schema["properties"]:
-            for name, schema in prepared_query_schema["properties"].items():
-                is_url_param = re.search(name, str(self.url_pattern.pattern))
-                required_ = name in prepared_query_schema.get("required", [])
-                parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
-                self.parameters_keys.append(name)
-                self.parameters.append(parameter)
-
-    def set_parameters_from_parent_url_pattern(self):
-        for url_pattern in self.parent_url_pattern + [self.url_pattern]:
-            pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
-            if match := re.search(pattern, str(url_pattern.pattern)):
-                _type, name = match.groups()
-                schema = basic_query_schema(_type)
-                parameter = self.make_parameters(name, schema, True, "path")
-                self.parameters_keys.append(name)
-                self.parameters.append(parameter)
-
-    def set_path(self):
-        url_path_string = ""
-        for url_pattern in self.parent_url_pattern or []:
-            url_path_string += self.format_pattern(url_pattern)
-        url_path_string += self.format_pattern(self.url_pattern)
-        if not url_path_string.startswith('/'):
-            url_path_string = '/' + url_path_string
-        self.path = url_path_string
-
-    @staticmethod
-    def format_pattern(url_pattern: URLPattern) -> str:
-        pattern = '[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
-        match = re.search(pattern, str(url_pattern.pattern))
-        if match:
-            return re.sub(pattern, '{' + match.group('variable') + '}', str(url_pattern.pattern))
-        else:
-            return str(url_pattern.pattern)
-
-    @staticmethod
-    def make_description_from_status(status: int) -> str:
-        return responses.get(status, "Unknown")
-
-    def set_responses(self):
-        for status, schema in self.url_pattern.callback.schema.items():
-            if schema_type(schema) and schema.Info.description:
-                description = schema.Info.description
-            else:
-                description = self.make_description_from_status(status)
-            response_model = create_model(
-                'openapi_response_model',
-                **{'response': (schema, ...)},
-                __base__=Schema
-            )
-
-            prepared_schema = response_model.schema(ref_template=REF_MODAL_TEMPLATE)
-            if "$defs" in prepared_schema:
-                self.export_components.update(prepared_schema.pop("$defs"))
-            content = prepared_schema['properties']['response']
-            self.responses[str(status)] = {
-                "description": description,
-                "content": {"application/json": {"schema": content}}
-            }
-
-    def dict(self):
-
-        return {
-            method.lower(): {
-                "summary": self.summary,
-                "description": self.explanation,
-                "operationId": self.operation_id,
-                "responses": self.responses,
-                "parameters": self.parameters,
-                "requestBody": self.request_body,
-                "tags": self.tags,
-                "security": self.security
-            } for method in self.methods
-        }
-
-
-class Info:
-    def __init__(self, title: str, version: str, description: str):
-        self.title = title
-        self.version = version
-        self.description = description
-
-    def dict(self):
-        return {
-            "title": self.title,
-            "version": self.version,
-            "description": self.description
-        }
+from .auth import default_auth
+from .defaults import ABS_TPL_PATH
+from .info import Info
+from .openapi_path import OpenAPI_Path
 
 
 class OpenAPI:
@@ -195,6 +19,7 @@ class OpenAPI:
     components = {"schemas": {}}
     definitions = {}
     tags = []
+    security_schema = {}
     security = {}
 
     def __init__(self):
@@ -204,7 +29,7 @@ class OpenAPI:
     def is_djapy_openapi(view_func):
         return getattr(view_func, 'djapy', False) and getattr(view_func, 'openapi', False)
 
-    def set_path_and_exports(self, openapi_path: OpenApiPath):
+    def set_path_and_exports(self, openapi_path: OpenAPI_Path):
         if openapi_path.export_definitions:
             self.definitions.update(path.export_definitions)
         if openapi_path.export_components:
@@ -219,28 +44,33 @@ class OpenAPI:
             parent_url_patterns = []
         for url_pattern in url_patterns:
             if self.is_djapy_openapi(url_pattern.callback):
-                openapi_path = OpenApiPath(url_pattern, parent_url_patterns)
-                self.set_path_and_exports(openapi_path)
+                openapi_path_ = OpenAPI_Path(url_pattern, parent_url_patterns)
+                self.set_path_and_exports(openapi_path_)
             if hasattr(url_pattern, 'url_patterns'):
                 self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
 
     def dict(self):
         self.generate_paths(self.resolved_url.url_patterns)
-        self.components["securitySchemes"] = self.security
+        self.components["securitySchemes"] = self.security_schema
         return {
             'openapi': self.openapi,
             'info': self.info.dict(),
             'paths': self.paths,
             'components': self.components,
             '$defs': self.definitions,
-            'tags': self.tags
+            'tags': self.tags,
+            'security': self.security
         }
 
-    def set_basic_info(self, title: str, description, version="1.0.0", tags_info=None, security: dict = None):
+    def set_basic_info(
+            self, title: str, description, version="1.0.0",
+            tags_info=None, security_schema: dict = None,
+            security: dict = None):
         self.info.title = title
         self.info.description = description
         self.info.version = version
         self.tags.extend(tags_info or [])
+        self.security_schema = security_schema or {}
         self.security = security or {}
 
     def get_openapi(self, request):

@@ -78,13 +78,13 @@ def djapify(view_func: Callable = None,
             login_required: bool = False,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
-            openapi_tags: List[str] = None) -> Callable:
+            tags: List[str] = None) -> Callable:
     """
     :param view_func: A pydantic model or a view function
     :param login_required: A boolean to check if the view requires login
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
-    :param openapi_tags: A list of strings to tag the view in the openapi schema
+    :param tags: A list of strings to tag the view in the openapi schema
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
     global _errorhandler_functions
@@ -136,7 +136,7 @@ def djapify(view_func: Callable = None,
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
-        _wrapped_view.openapi_tags = openapi_tags
+        _wrapped_view.openapi_tags = tags
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         query_schema_dict = {}

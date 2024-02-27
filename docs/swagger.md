@@ -54,7 +54,7 @@ Also, you can assign tags name using `@djapigy` decorator.
 from djapy import djapify
 
 
-@djapify(openapi_tags=["todos"])
+@djapify(tags=["todos"])
 def todo_list(request):
     ...
 ```
