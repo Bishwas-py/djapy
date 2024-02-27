@@ -1,4 +1,6 @@
-from .core import djapy_method, djapy_auth, openapi, djapify
+from .core.auth import djapy_method, djapy_auth
+from .core.openapi import openapi
+from .core.dec import djapify
 from .core.mid import UHandleErrorMiddleware
 from .schema import Schema
 
