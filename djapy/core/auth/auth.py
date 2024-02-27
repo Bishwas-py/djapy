@@ -2,8 +2,9 @@ from django.http import HttpRequest
 
 
 class BaseAuthMechanism:
-    def __init__(self, *args, **kwargs):
-        self.message_response = None
+    def __init__(self, permissions: list[str] = None, message_response: dict = None, *args, **kwargs):
+        self.message_response = message_response or {"message": "Unauthorized"}
+        self.permissions = permissions
 
     def authenticate(self, request: HttpRequest, *args, **kwargs):
         pass
@@ -25,12 +26,20 @@ class BaseAuthMechanism:
 
 
 class SessionAuth(BaseAuthMechanism):
-    def __init__(self, *args, **kwargs):
-        self.message_response = {"message": "You are not authenticated"}
-        super().__init__(*args, **kwargs)
 
     def authenticate(self, request: HttpRequest, *args, **kwargs):
-        return self.message_response
+        if not request.user.is_authenticated:
+            return {
+                "message": "Unauthorized",
+                "alias": "access_denied"
+            }
+
+    def authorize(self, request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated or not all([request.user.has_perm(perm) for perm in self.permissions]):
+            return {
+                "message": "Unauthorized",
+                "alias": "permission_denied"
+            }
 
     def required_headers(self):
         return [

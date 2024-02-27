@@ -5,7 +5,6 @@ from http.client import responses
 from django.urls import URLPattern
 from pydantic import create_model
 
-from ..openapi import default_auth
 from .defaults import REF_MODAL_TEMPLATE
 from ..type_check import schema_type, basic_query_schema
 from ...schema import Schema

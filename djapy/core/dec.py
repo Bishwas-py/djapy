@@ -75,8 +75,36 @@ def handle_error(request, exception):
     return None
 
 
+def set_schema(view_func: Callable, _wrapped_view: Callable):
+    query_schema_dict = {}
+    data_schema_dict = {}
+    for param in view_func.required_params:
+        is_query = is_param_query_type(param)
+        is_empty = param.default is inspect.Parameter.empty
+        if is_empty:
+            passable_tuple = (param.annotation, ...)
+        else:
+            passable_tuple = (param.annotation, param.default)
+
+        if is_query:
+            query_schema_dict[param.name] = passable_tuple
+        else:
+            data_schema_dict[param.name] = passable_tuple
+
+    _wrapped_view.query_schema = view_func.query_schema = create_model(
+        REQUEST_INPUT_SCHEMA_NAME,
+        **query_schema_dict,
+        __base__=Schema
+    )
+
+    _wrapped_view.data_schema = view_func.data_schema = create_model(
+        REQUEST_INPUT_SCHEMA_NAME,
+        **data_schema_dict,
+        __base__=Schema
+    )
+
+
 def djapify(view_func: Callable = None,
-            auth_mechanism: BaseAuthMechanism = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None) -> Callable:
@@ -93,24 +121,21 @@ def djapify(view_func: Callable = None,
     view_func.required_params = get_required_params(view_func)
     view_func_module = importlib.import_module(view_func.__module__)
     openai_info = getattr(view_func_module, 'openapi_info', {})
-    in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
-    if not auth_mechanism:
-        auth_mechanism = in_app_auth_mechanism or BaseAuthMechanism()
+
+    # in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
+    # if not auth_mechanism:
+    #     auth_mechanism = in_app_auth_mechanism or _wrapped_view.auth_mechanism
 
     def decorator(view_func):
-        permissions = getattr(view_func, 'permissions', None)
-        print("permissions", permissions)
-
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
-            message_json_returned = auth_mechanism.authenticate(request, *args, **view_kwargs)
-
+            message_json_returned = _wrapped_view.auth_mechanism.authenticate(request, *args, **view_kwargs)
             if message_json_returned:
                 return JsonResponse(message_json_returned, status=401)
-            if permissions:
-                message_json_returned = auth_mechanism.authorize(request, permissions, *args, **view_kwargs)
-                if message_json_returned:
-                    return JsonResponse(message_json_returned, status=403)
+
+            message_json_returned = _wrapped_view.auth_mechanism.authorize(request, *args, **view_kwargs)
+            if message_json_returned:
+                return JsonResponse(message_json_returned, status=403)
 
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
@@ -151,36 +176,10 @@ def djapify(view_func: Callable = None,
         _wrapped_view.openapi_tags = tags
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-        query_schema_dict = {}
-        data_schema_dict = {}
-
-        for param in view_func.required_params:
-            is_query = is_param_query_type(param)
-            is_empty = param.default is inspect.Parameter.empty
-            if is_empty:
-                passable_tuple = (param.annotation, ...)
-            else:
-                passable_tuple = (param.annotation, param.default)
-
-            if is_query:
-                query_schema_dict[param.name] = passable_tuple
-            else:
-                data_schema_dict[param.name] = passable_tuple
-
-        _wrapped_view.query_schema = view_func.query_schema = create_model(
-            REQUEST_INPUT_SCHEMA_NAME,
-            **query_schema_dict,
-            __base__=Schema
-        )
-
-        _wrapped_view.data_schema = view_func.data_schema = create_model(
-            REQUEST_INPUT_SCHEMA_NAME,
-            **data_schema_dict,
-            __base__=Schema
-        )
+        set_schema(view_func, _wrapped_view)
         _wrapped_view.openapi_info = openai_info
 
-        _wrapped_view.auth_mechanism = auth_mechanism
+        _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', BaseAuthMechanism())
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):
                 _wrapped_view.djapy_allowed_method = [allowed_method]

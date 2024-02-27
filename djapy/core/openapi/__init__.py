@@ -5,7 +5,6 @@ from typing import Optional
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.urls import URLPattern, get_resolver, path, reverse
 
-from .auth import default_auth
 from .defaults import ABS_TPL_PATH
 from .info import Info
 from .openapi_path import OpenAPI_Path

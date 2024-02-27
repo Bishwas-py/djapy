@@ -16,8 +16,7 @@ def djapy_auth(auth_mechanism_class: Type[BaseAuthMechanism],
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
             return view_func(request, *args, **kwargs)
 
-        _wrapped_view.auth_mechanism = auth_mechanism_class()
-        _wrapped_view.permissions = permissions
+        _wrapped_view.auth_mechanism = auth_mechanism_class(permissions)
         return _wrapped_view
 
     if inspect.isfunction(auth_mechanism_class):
