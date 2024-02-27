@@ -23,5 +23,4 @@ def create_validation_error(title, loc_name, _type):
             )
         ],
         input_type="python",
-
     )

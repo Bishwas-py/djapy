@@ -24,10 +24,12 @@ class OpenAPI_Path:
             self.explanation = ""
 
     def set_tags(self):
-        explicit_tags = (getattr(self.view_func, 'openapi_tags', None) or self.openai_info.get('tags')
-                         or [self.view_func.__module__])
+        explicit_tags = (
+                getattr(self.view_func, 'openapi_tags', None)
+                or self.openapi_tags
+                or [self.view_func.__module__]
+        )
         self.tags = explicit_tags
-        self.export_tags = self.openai_info.get('tags_info', [])
 
     def set_security(self):
         self.security.append(self.view_func.auth_mechanism.app_schema())
@@ -36,8 +38,8 @@ class OpenAPI_Path:
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
         self.parent_url_pattern = parent_url_pattern or []
         self.view_func = url_pattern.callback
-        self.openai_info = getattr(self.view_func, 'openapi_info', {})
-
+        self.openapi_tags = getattr(self.view_func, 'openapi_tags', [])
+        print(self.view_func.openapi_tags)
         self.export_tags = None
         self.export_security_schemes = {}
         self.export_components = {}

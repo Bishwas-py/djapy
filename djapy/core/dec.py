@@ -122,7 +122,6 @@ def djapify(view_func: Callable = None,
 
     view_func.required_params = get_required_params(view_func)
     view_func_module = importlib.import_module(view_func.__module__)
-    openai_info = getattr(view_func_module, 'openapi_info', {})
     in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
 
     def decorator(view_func):
@@ -172,11 +171,11 @@ def djapify(view_func: Callable = None,
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
-        _wrapped_view.openapi_tags = tags
+        _wrapped_view.openapi_tags = tags or getattr(view_func_module, 'openapi_tags', [])
+
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         set_schema(view_func, _wrapped_view)
-        _wrapped_view.openapi_info = openai_info
 
         _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
         if not _wrapped_view.auth_mechanism:
