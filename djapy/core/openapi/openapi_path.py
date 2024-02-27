@@ -31,12 +31,12 @@ class OpenAPI_Path:
         self.export_tags = self.openai_info.get('tags_info', [])
 
     def set_security(self):
-        self.security = self.openai_info.get('security', [])
-        if not self.security and self.view_func.djapy_has_login_required:
-            self.security = default_auth
+        self.security.append(self.view_func.auth_mechanism.app_schema())
+        self.export_security_schemes.update(self.view_func.auth_mechanism.schema())
 
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
         self.export_tags = None
+        self.export_security_schemes = {}
         self.tags = None
         self.security = []
         self.explanation = None

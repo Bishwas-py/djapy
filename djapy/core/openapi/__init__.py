@@ -34,6 +34,8 @@ class OpenAPI:
             self.definitions.update(path.export_definitions)
         if openapi_path.export_components:
             self.components["schemas"].update(openapi_path.export_components)
+        if openapi_path.export_security_schemes:
+            self.security_schema.update(openapi_path.export_security_schemes)
         if openapi_path.export_tags:
             self.tags.extend(openapi_path.export_tags)
         if getattr(openapi_path.url_pattern.callback, 'openapi', False):

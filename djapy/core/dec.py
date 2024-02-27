@@ -11,6 +11,7 @@ from djapy.schema import Schema
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError, create_model
 
+from .auth import BaseAuthMechanism
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
 from .parser import ResponseDataParser, RequestDataParser
@@ -75,13 +76,13 @@ def handle_error(request, exception):
 
 
 def djapify(view_func: Callable = None,
-            login_required: bool = False,
+            auth_mechanism: BaseAuthMechanism = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None) -> Callable:
     """
     :param view_func: A pydantic model or a view function
-    :param login_required: A boolean to check if the view requires login
+    :param auth_mechanism: A class that inherits from BaseAuthMechanism
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
     :param tags: A list of strings to tag the view in the openapi schema
@@ -89,22 +90,25 @@ def djapify(view_func: Callable = None,
     """
     global _errorhandler_functions
 
-    def decorator(view_func):
-        view_func.required_params = get_required_params(view_func)
-        view_func_module = importlib.import_module(view_func.__module__)
-        openai_info = getattr(view_func_module, 'openapi_info', {})
+    view_func.required_params = get_required_params(view_func)
+    view_func_module = importlib.import_module(view_func.__module__)
+    openai_info = getattr(view_func_module, 'openapi_info', {})
+    in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
+    if not auth_mechanism:
+        auth_mechanism = in_app_auth_mechanism or BaseAuthMechanism()
 
+    def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
-            djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', False)
+            message_json_returned = auth_mechanism.authenticate(request, *args, **view_kwargs)
+            if message_json_returned:
+                return JsonResponse(message_json_returned, status=401)
+
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
 
             if request.method not in djapy_allowed_method:
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
-            if djapy_has_login_required and not request.user.is_authenticated:
-                return JsonResponse(djapy_message_response or DEFAULT_AUTH_REQUIRED_MESSAGE, status=401)
-
             try:
                 parser = RequestDataParser(request, view_func, view_kwargs)
                 _data_kwargs = parser.parse_request_data()
@@ -168,7 +172,7 @@ def djapify(view_func: Callable = None,
         )
         _wrapped_view.openapi_info = openai_info
 
-        _wrapped_view.djapy_has_login_required = getattr(_wrapped_view, 'djapy_has_login_required', login_required)
+        _wrapped_view.auth_mechanism = auth_mechanism
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):
                 _wrapped_view.djapy_allowed_method = [allowed_method]
