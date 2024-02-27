@@ -144,10 +144,16 @@ def djapify(view_func: Callable = None,
 
         for param in view_func.required_params:
             is_query = is_param_query_type(param)
-            if is_query:
-                query_schema_dict[param.name] = (param.annotation, ...)
+            is_empty = param.default is inspect.Parameter.empty
+            if is_empty:
+                passable_tuple = (param.annotation, ...)
             else:
-                data_schema_dict[param.name] = (param.annotation, ...)
+                passable_tuple = (param.annotation, param.default)
+
+            if is_query:
+                query_schema_dict[param.name] = passable_tuple
+            else:
+                data_schema_dict[param.name] = passable_tuple
 
         _wrapped_view.query_schema = view_func.query_schema = create_model(
             REQUEST_INPUT_SCHEMA_NAME,

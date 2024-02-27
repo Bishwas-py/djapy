@@ -38,7 +38,6 @@ class RequestDataParser:
                 **self.line_kwargs
             })
             data = self.data_schema.model_validate(self.data)
-            print(data.dict())
             destructured_object_data = {
                 **query_data.dict(),
                 **data.dict()
