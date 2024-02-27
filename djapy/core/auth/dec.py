@@ -9,14 +9,17 @@ from . import BaseAuthMechanism
 from ..defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 
 
-def djapy_auth(auth_mechanism_class: Type[BaseAuthMechanism],
+def djapy_auth(auth_mechanism_class: Type[BaseAuthMechanism] | False,
                permissions: List[str] = None) -> Callable:
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **kwargs):
             return view_func(request, *args, **kwargs)
 
-        _wrapped_view.auth_mechanism = auth_mechanism_class(permissions)
+        if auth_mechanism_class:
+            _wrapped_view.auth_mechanism = auth_mechanism_class(permissions)
+        else:
+            _wrapped_view.auth_mechanism = BaseAuthMechanism()
         return _wrapped_view
 
     if inspect.isfunction(auth_mechanism_class):
