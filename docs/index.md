@@ -20,7 +20,10 @@ Djapy is available on PyPI, and can be installed with `pip`:
 
 ```bash
 pip install djapy
+or
+pip install git+https://github.com/Bishwas-py/djapy.git@main # for the latest version
 ```
+
 
 ## Creating a new project
 

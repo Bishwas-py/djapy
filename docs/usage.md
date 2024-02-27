@@ -98,9 +98,9 @@ def get_user(request, username: str) -> {200: UserSchema, 404: str}:
 
 #### Allowed query parameter types
 
-- `str`
-- `int`
-- `float`
+- `str` or `Optional[str]` or `Literal["value1", "value2"]`
+- `int` or `Optional[int]` or `Literal[1, 2, 3]`
+- `float` or `Optional[float]`
 - `bool`
 - `datetime`
 

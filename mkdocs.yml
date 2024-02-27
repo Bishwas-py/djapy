@@ -58,3 +58,4 @@ nav:
   - Introduction: index.md
   - Usage: usage.md
   - Swagger: swagger.md
+  - Authentication: auth.md
