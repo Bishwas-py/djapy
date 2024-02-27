@@ -96,6 +96,8 @@ class OpenAPI_Path:
             ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
+                if name in self.parameters_keys:
+                    continue
                 is_url_param = re.search(name, str(self.url_pattern.pattern))
                 required_ = name in prepared_query_schema.get("required", [])
                 parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")

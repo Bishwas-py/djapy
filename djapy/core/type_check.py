@@ -9,7 +9,8 @@ QUERY_BASIC_TYPES = {
     "int": "integer",
     "float": "number",
     "bool": "boolean",
-    "datetime": "string"
+    "datetime": "string",
+    "uuid": "uuid"
 }
 
 
@@ -59,10 +60,16 @@ def is_param_query_type(param: Parameter):
     return False
 
 
+BASIC_URL_QUERY_TYPES = {
+    **QUERY_BASIC_TYPES,
+    "slug": "slug",
+}
+
+
 def basic_query_schema(param: Parameter | str, default=None):
     type_name = None
     if isinstance(param, str):
-        type_name = QUERY_BASIC_TYPES.get(param)
+        type_name = BASIC_URL_QUERY_TYPES.get(param)
     elif param:
         type_name = QUERY_BASIC_TYPES.get(param.annotation.__name__)
     return {"type": type_name or default}
