@@ -107,13 +107,15 @@ def set_schema(view_func: Callable, _wrapped_view: Callable):
 def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
-            tags: List[str] = None) -> Callable:
+            tags: List[str] = None,
+            auth_mechanism_obj=BaseAuthMechanism()) -> Callable:
     """
     :param view_func: A pydantic model or a view function
     :param auth_mechanism: A class that inherits from BaseAuthMechanism
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
     :param tags: A list of strings to tag the view in the openapi schema
+    :param auth_mechanism_obj: A class that inherits from BaseAuthMechanism
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
     global _errorhandler_functions
@@ -121,10 +123,7 @@ def djapify(view_func: Callable = None,
     view_func.required_params = get_required_params(view_func)
     view_func_module = importlib.import_module(view_func.__module__)
     openai_info = getattr(view_func_module, 'openapi_info', {})
-
-    # in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
-    # if not auth_mechanism:
-    #     auth_mechanism = in_app_auth_mechanism or _wrapped_view.auth_mechanism
+    in_app_auth_mechanism = getattr(view_func_module, 'auth_mechanism', None)
 
     def decorator(view_func):
         @wraps(view_func)
@@ -179,7 +178,10 @@ def djapify(view_func: Callable = None,
         set_schema(view_func, _wrapped_view)
         _wrapped_view.openapi_info = openai_info
 
-        _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', BaseAuthMechanism())
+        _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
+        if not _wrapped_view.auth_mechanism:
+            _wrapped_view.auth_mechanism = auth_mechanism_obj
+
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):
                 _wrapped_view.djapy_allowed_method = [allowed_method]
