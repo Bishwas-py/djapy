@@ -37,9 +37,13 @@ class OpenApiPath:
         self.tags = explicit_tags
         self.export_tags = self.openai_info.get('tags_info', [])
 
+    def set_security(self):
+        self.security = self.openai_info.get('security', [])
+
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
         self.export_tags = None
         self.tags = None
+        self.security = []
         self.explanation = None
         self.summary = None
         self.url_pattern = url_pattern
@@ -54,7 +58,9 @@ class OpenApiPath:
         self.request_body = {}
         self.responses = {}
         self.parameters = []
-        self.path = self.get_path_string()
+        self.path = None
+        self.set_path()
+        self.set_security()
         self.set_docstrings()
         self.set_tags()
         self.set_parameters()
@@ -108,14 +114,14 @@ class OpenApiPath:
                 self.parameters_keys.append(name)
                 self.parameters.append(parameter)
 
-    def get_path_string(self) -> str:
+    def set_path(self):
         url_path_string = ""
         for url_pattern in self.parent_url_pattern or []:
             url_path_string += self.format_pattern(url_pattern)
         url_path_string += self.format_pattern(self.url_pattern)
         if not url_path_string.startswith('/'):
             url_path_string = '/' + url_path_string
-        return url_path_string
+        self.path = url_path_string
 
     @staticmethod
     def format_pattern(url_pattern: URLPattern) -> str:
@@ -161,7 +167,8 @@ class OpenApiPath:
                 "responses": self.responses,
                 "parameters": self.parameters,
                 "requestBody": self.request_body,
-                "tags": self.tags
+                "tags": self.tags,
+                "security": self.security
             } for method in self.methods
         }
 
@@ -188,6 +195,7 @@ class OpenAPI:
     components = {"schemas": {}}
     definitions = {}
     tags = []
+    security = {}
 
     def __init__(self):
         self.resolved_url = get_resolver()
@@ -218,6 +226,7 @@ class OpenAPI:
 
     def dict(self):
         self.generate_paths(self.resolved_url.url_patterns)
+        self.components["securitySchemes"] = self.security
         return {
             'openapi': self.openapi,
             'info': self.info.dict(),
@@ -227,10 +236,12 @@ class OpenAPI:
             'tags': self.tags
         }
 
-    def set_basic_info(self, title: str, description, version="1.0.0"):
+    def set_basic_info(self, title: str, description, version="1.0.0", tags_info=None, security: dict = None):
         self.info.title = title
         self.info.description = description
         self.info.version = version
+        self.tags.extend(tags_info or [])
+        self.security = security or {}
 
     def get_openapi(self, request):
         return JsonResponse(self.dict())
