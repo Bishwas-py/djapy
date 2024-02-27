@@ -62,7 +62,7 @@ def is_param_query_type(param: Parameter):
 
 BASIC_URL_QUERY_TYPES = {
     **QUERY_BASIC_TYPES,
-    "slug": "slug",
+    "slug": "string",
 }
 
 
