@@ -1,6 +1,6 @@
 import types
 from inspect import Parameter
-from typing import Union, get_args
+from typing import Union, get_args, get_origin, Literal, List, Optional
 
 from ..schema import Schema
 
@@ -13,20 +13,55 @@ QUERY_BASIC_TYPES = {
 }
 
 
+def is_literal_of_string(type_hint):
+    origin = get_origin(type_hint)
+    args = get_args(type_hint) if origin == Literal else []
+
+    return origin == Literal and all(isinstance(arg, str) for arg in args)
+
+
+def get_type_name(type_):
+    if get_origin(type_) in [Literal, List, Union, Optional]:
+        return get_type_name(get_args(type_)[0]) if get_args(type_) else None
+    return type_.__name__ if hasattr(type_, "__name__") else type(type_).__name__
+
+
+def is_union_of_basic_types(annotation):
+    """
+    Checks if the type hint is a union of basic types. QUERY_BASIC_TYPES
+    str | datetime -> True
+    str | int -> True
+    str | float -> True
+    str | bool -> True
+    bool | int -> True
+    str | float | int -> True
+    str | float | int | bool -> True
+    str | list[int] -> False
+    str | list[str] -> False
+    str | dict -> False
+    """
+    truths = []
+    if not isinstance(annotation, types.UnionType):
+        return False
+    for type_ in get_args(annotation):
+        if get_type_name(type_) in QUERY_BASIC_TYPES:
+            truths.append(True)
+    if not truths:
+        return False
+    return all(truths) and len(truths) == get_args(annotation).__len__()
+
+
 def is_param_query_type(param: Parameter):
     """
     Basically checks if the parameter is a basic query type.
     """
-    if not param.annotation:
-        return False
+
     annotation = param.annotation
-    if isinstance(annotation, types.UnionType):
-        annotation = annotation.__args__[0]
-    is_optional = getattr(annotation, "__origin__", None) is Union
-    if is_optional:
-        # Get the actual type for Optional[T]
-        annotation = get_args(annotation)[0]
-    return annotation.__name__ in QUERY_BASIC_TYPES, is_optional
+    if get_type_name(annotation) in QUERY_BASIC_TYPES:
+        return True
+    if is_union_of_basic_types(annotation):
+        return True
+    return False
 
 
 def basic_query_schema(param: Parameter | str, default=None):

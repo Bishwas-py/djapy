@@ -143,7 +143,7 @@ def djapify(view_func: Callable = None,
         data_schema_dict = {}
 
         for param in view_func.required_params:
-            is_query, is_optional = is_param_query_type(param)
+            is_query = is_param_query_type(param)
             if is_query:
                 query_schema_dict[param.name] = (param.annotation, ...)
             else:

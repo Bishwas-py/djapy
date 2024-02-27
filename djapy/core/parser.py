@@ -6,7 +6,7 @@ from pydantic import ValidationError, create_model, BaseModel, Json
 from django.http import JsonResponse, HttpRequest
 
 from djapy.schema import Schema
-from .type_check import schema_type, is_param_query_type
+from .type_check import schema_type
 from .response import create_validation_error
 from .labels import REQUEST_INPUT_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON_OUTPUT_PARSE_NAME, JSON_BODY_PARSE_NAME
 
