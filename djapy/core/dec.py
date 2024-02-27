@@ -98,11 +98,19 @@ def djapify(view_func: Callable = None,
         auth_mechanism = in_app_auth_mechanism or BaseAuthMechanism()
 
     def decorator(view_func):
+        permissions = getattr(view_func, 'permissions', None)
+        print("permissions", permissions)
+
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
             message_json_returned = auth_mechanism.authenticate(request, *args, **view_kwargs)
+
             if message_json_returned:
                 return JsonResponse(message_json_returned, status=401)
+            if permissions:
+                message_json_returned = auth_mechanism.authorize(request, permissions, *args, **view_kwargs)
+                if message_json_returned:
+                    return JsonResponse(message_json_returned, status=403)
 
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
