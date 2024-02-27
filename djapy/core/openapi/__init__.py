@@ -95,7 +95,6 @@ class OpenApiPath:
                 is_url_param = re.search(name, str(self.url_pattern.pattern))
                 required_ = name in prepared_query_schema.get("required", [])
                 parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
-                print(parameter)
                 self.parameters_keys.append(name)
                 self.parameters.append(parameter)
 

@@ -40,15 +40,10 @@ def is_union_of_basic_types(annotation):
     str | list[str] -> False
     str | dict -> False
     """
-    truths = []
     if not isinstance(annotation, types.UnionType):
         return False
-    for type_ in get_args(annotation):
-        if get_type_name(type_) in QUERY_BASIC_TYPES:
-            truths.append(True)
-    if not truths:
-        return False
-    return all(truths) and len(truths) == get_args(annotation).__len__()
+
+    return all(get_type_name(type_) in QUERY_BASIC_TYPES for type_ in get_args(annotation))
 
 
 def is_param_query_type(param: Parameter):

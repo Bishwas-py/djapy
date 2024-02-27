@@ -33,11 +33,11 @@ class RequestDataParser:
                 self.required_params[0].name: validated_obj
             }
         else:
-            query_data = self.query_schema.parse_obj({
+            query_data = self.query_schema.model_validate({
                 **self.query_data,
                 **self.line_kwargs
             })
-            data = self.data_schema.parse_obj(self.data)
+            data = self.data_schema.model_validate(self.data)
             print(data.dict())
             destructured_object_data = {
                 **query_data.dict(),
@@ -62,7 +62,7 @@ class RequestDataParser:
                     **{JSON_BODY_PARSE_NAME: (Json, ...)},
                     __base__=BaseModel
                 )
-                validated_obj = json_modal_schema.parse_obj({
+                validated_obj = json_modal_schema.model_validate({
                     JSON_BODY_PARSE_NAME: request_body
                 })
                 self.data.update(validated_obj.dict().get(JSON_BODY_PARSE_NAME))
@@ -92,20 +92,9 @@ class ResponseDataParser:
 
     def parse_response_data(self) -> Dict[str, Any]:
         response_model = self.create_response_model()
-        validated_obj = response_model.parse_obj({JSON_OUTPUT_PARSE_NAME: self.data})
+        validated_obj = response_model.model_validate({JSON_OUTPUT_PARSE_NAME: self.data})
 
         # Deconstruct the object data
         destructured_object_data = validated_obj.dict()
 
         return destructured_object_data.get(JSON_OUTPUT_PARSE_NAME)
-
-# def extract_and_validate_request_params(request, required_params, view_kwargs):
-#     """
-#     Extracts and validates request parameters from a Django request object.
-#     :param request: HttpRequest
-#         The Django request object to extract parameters from.
-#     :param required_params: list
-#     :params view_kwargs: dict
-#     """
-#     parser = RequestDataParser(request, required_params, view_kwargs)
-#     return parser.parse_request_data()
