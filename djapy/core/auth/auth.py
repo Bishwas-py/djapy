@@ -15,9 +15,6 @@ class BaseAuthMechanism:
     def schema(self):
         return {}
 
-    def required_headers(self):
-        pass
-
     def app_schema(self):
         return {}
 
@@ -40,11 +37,6 @@ class SessionAuth(BaseAuthMechanism):
                 "message": "Unauthorized",
                 "alias": "permission_denied"
             }
-
-    def required_headers(self):
-        return [
-            "Cookie"
-        ]
 
     def schema(self):
         return {

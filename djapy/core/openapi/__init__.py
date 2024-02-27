@@ -28,17 +28,17 @@ class OpenAPI:
     def is_djapy_openapi(view_func):
         return getattr(view_func, 'djapy', False) and getattr(view_func, 'openapi', False)
 
-    def set_path_and_exports(self, openapi_path: OpenAPI_Path):
-        if openapi_path.export_definitions:
+    def set_path_and_exports(self, openapi_path_: OpenAPI_Path):
+        if openapi_path_.export_definitions:
             self.definitions.update(path.export_definitions)
-        if openapi_path.export_components:
-            self.components["schemas"].update(openapi_path.export_components)
-        if openapi_path.export_security_schemes:
-            self.security_schema.update(openapi_path.export_security_schemes)
-        if openapi_path.export_tags:
-            self.tags.extend(openapi_path.export_tags)
-        if getattr(openapi_path.url_pattern.callback, 'openapi', False):
-            self.paths[openapi_path.path] = openapi_path.dict()
+        if openapi_path_.export_components:
+            self.components["schemas"].update(openapi_path_.export_components)
+        if openapi_path_.export_security_schemes:
+            self.security_schema.update(openapi_path_.export_security_schemes)
+        if openapi_path_.export_tags:
+            self.tags.extend(openapi_path_.export_tags)
+        if getattr(openapi_path_.url_pattern.callback, 'openapi', False):
+            self.paths[openapi_path_.path] = openapi_path_.dict()
 
     def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns=None):
         if parent_url_patterns is None:

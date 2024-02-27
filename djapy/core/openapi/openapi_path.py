@@ -34,20 +34,23 @@ class OpenAPI_Path:
         self.export_security_schemes.update(self.view_func.auth_mechanism.schema())
 
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
+        self.parent_url_pattern = parent_url_pattern or []
+        self.view_func = url_pattern.callback
+        self.openai_info = getattr(self.view_func, 'openapi_info', {})
+
         self.export_tags = None
         self.export_security_schemes = {}
-        self.tags = None
+        self.export_components = {}
+        self.export_definitions = {}
+
         self.security = []
+        self.tags = None
         self.explanation = None
         self.summary = None
         self.url_pattern = url_pattern
-        self.parent_url_pattern = parent_url_pattern or []
-        self.view_func = url_pattern.callback
+
         self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}"
-        self.openai_info = getattr(self.view_func, 'openapi_info', {})
         self.methods = url_pattern.callback.djapy_allowed_method
-        self.export_components = {}
-        self.export_definitions = {}
         self.parameters_keys = []
         self.request_body = {}
         self.responses = {}
