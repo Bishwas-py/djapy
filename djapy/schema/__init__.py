@@ -14,4 +14,4 @@ class Schema(BaseModel):
         is_query = False
 
     class Info:
-        description: str = ""
+        description: dict = {}

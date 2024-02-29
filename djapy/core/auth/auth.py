@@ -1,5 +1,7 @@
 from django.http import HttpRequest
 
+from djapy import Schema
+
 
 class BaseAuthMechanism:
     def __init__(self, permissions: list[str] = None, message_response: dict = None, *args, **kwargs):
@@ -57,3 +59,16 @@ class SessionAuth(BaseAuthMechanism):
             "SessionAuth": [],
             "CSRFTokenAuth": []
         }
+
+
+"""
+
+Something of this syntax. And it could be able to apply pagination details in swagger/OpenAPI too.
+
+@djapify
+@djapily_paginated(OffsetLimitPagination)
+def related_post(request, search_topic: str) -> {200: list[UserSchema], 401: ErrorMessage}:
+    posts = Post.objects.filter(topic__icontains=search_topic)
+    return 200, posts
+
+"""

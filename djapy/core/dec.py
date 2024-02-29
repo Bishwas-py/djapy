@@ -122,11 +122,12 @@ def djapify(view_func: Callable = None,
     """
     global _errorhandler_functions
 
-    view_func.required_params = get_required_params(view_func)
-    view_func_module = importlib.import_module(view_func.__module__)
-    in_app_auth_mechanism = getattr(view_func_module, IN_APP_AUTH_MECHANISM_NAME, None)
 
     def decorator(view_func):
+        view_func.required_params = get_required_params(view_func)
+        view_func_module = importlib.import_module(view_func.__module__)
+        in_app_auth_mechanism = getattr(view_func_module, IN_APP_AUTH_MECHANISM_NAME, None)
+
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
             message_json_returned = _wrapped_view.auth_mechanism.authenticate(request, *args, **view_kwargs)
