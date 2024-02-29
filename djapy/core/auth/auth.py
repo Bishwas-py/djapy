@@ -1,7 +1,5 @@
 from django.http import HttpRequest
 
-from djapy import Schema
-
 
 class BaseAuthMechanism:
     def __init__(self, permissions: list[str] = None, message_response: dict = None, *args, **kwargs):
