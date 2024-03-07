@@ -15,3 +15,10 @@ class Schema(BaseModel):
 
     class Info:
         description: dict = {}
+
+
+class unquery:
+    """
+    Distracts query params from getting into query params, and makes them data/payload
+    """
+    pass

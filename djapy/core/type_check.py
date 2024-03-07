@@ -1,6 +1,8 @@
 import types
-from inspect import Parameter
-from typing import Union, get_args, get_origin, Literal, List, Optional
+from inspect import Parameter, get_annotations
+from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated
+
+from pydantic import constr, StringConstraints
 
 from ..schema import Schema
 
@@ -47,16 +49,39 @@ def is_union_of_basic_types(annotation):
     return all(get_type_name(type_) in QUERY_BASIC_TYPES for type_ in get_args(annotation))
 
 
+def is_base_query_type(annotation):
+    """
+    Basically checks if the parameter is a basic query type.
+    """
+    if get_type_name(annotation) in QUERY_BASIC_TYPES:
+        return True
+    if is_union_of_basic_types(annotation):
+        return True
+    return False
+
+
+def is_annotated_of_basic_types(annotation):
+    args = get_args(annotation)
+    origin = get_origin(annotation)
+
+    if origin is Annotated:
+        inner_type = args[0]  # Get the inner original type
+        if is_base_query_type(inner_type):
+            return True
+    return False
+
+
 def is_param_query_type(param: Parameter):
     """
     Basically checks if the parameter is a basic query type.
     """
 
     annotation = param.annotation
-    if get_type_name(annotation) in QUERY_BASIC_TYPES:
+    if is_base_query_type(annotation):
         return True
-    if is_union_of_basic_types(annotation):
+    if is_annotated_of_basic_types(annotation):
         return True
+
     return False
 
 
