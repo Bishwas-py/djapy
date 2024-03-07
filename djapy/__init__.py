@@ -6,4 +6,4 @@ from .schema import Schema
 from .core.auth import SessionAuth, BaseAuthMechanism
 
 __all__ = ['djapify', 'openapi', 'djapy_auth', 'djapy_method', 'Schema', 'UHandleErrorMiddleware',
-                                                                         'SessionAuth', 'BaseAuthMechanism']
+           'SessionAuth', 'BaseAuthMechanism']
