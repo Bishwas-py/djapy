@@ -14,6 +14,7 @@ from pydantic import ValidationError, create_model
 from .auth import BaseAuthMechanism
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
+from .pagination.pagination import OffsetLimitPagination
 from .parser import ResponseDataParser, RequestDataParser
 from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging
@@ -77,9 +78,11 @@ def handle_error(request, exception):
     return None
 
 
-def set_schema(view_func: Callable, _wrapped_view: Callable):
+def set_schema(view_func: Callable, _wrapped_view: Callable, extra_query_dict: Dict = None):
     query_schema_dict = {}
     data_schema_dict = {}
+    if not extra_query_dict:
+        extra_query_dict = {}
     for param in view_func.required_params:
         is_query = is_param_query_type(param)
         is_empty = param.default is inspect.Parameter.empty
@@ -96,6 +99,7 @@ def set_schema(view_func: Callable, _wrapped_view: Callable):
     _wrapped_view.query_schema = view_func.query_schema = create_model(
         REQUEST_INPUT_SCHEMA_NAME,
         **query_schema_dict,
+        **extra_query_dict,
         __base__=Schema
     )
 
@@ -110,18 +114,18 @@ def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None,
-            auth_mechanism_obj=BaseAuthMechanism()) -> Callable:
+            pagination_class: Type[OffsetLimitPagination] | None = None,
+            auth=BaseAuthMechanism()) -> Callable:
     """
     :param view_func: A pydantic model or a view function
-    :param auth_mechanism: A class that inherits from BaseAuthMechanism
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
     :param tags: A list of strings to tag the view in the openapi schema
-    :param auth_mechanism_obj: A class that inherits from BaseAuthMechanism
+    :param pagination_class: A class that inherits from OffsetLimitPagination
+    :param auth: A class that inherits from BaseAuthMechanism
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
     global _errorhandler_functions
-
 
     def decorator(view_func):
         view_func.required_params = get_required_params(view_func)
@@ -145,14 +149,13 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
                 parser = RequestDataParser(request, view_func, view_kwargs)
-                _data_kwargs = parser.parse_request_data()
-                response_from_view_func = view_func(request, *args, **_data_kwargs)
-                if isinstance(response_from_view_func, tuple):
-                    status, response = response_from_view_func
-                else:
-                    status, response = 200, response_from_view_func
+                _input_data = parser.parse_request_data()
+                response_from_view_func = view_func(request, *args, **_input_data)
 
-                parser = ResponseDataParser(status, response, schema_dict_returned)
+                status, response = response_from_view_func if isinstance(response_from_view_func, tuple) else (
+                    200, response_from_view_func)
+
+                parser = ResponseDataParser(status, response, schema_dict_returned, request, _input_data)
                 parsed_data = parser.parse_response_data()
                 return JsonResponse(parsed_data, status=status, safe=False)
 
@@ -168,9 +171,17 @@ def djapify(view_func: Callable = None,
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
+        extra_query_dict = {}
         schema_dict_returned = view_func.__annotations__.get('return', None)
         if not isinstance(schema_dict_returned, dict):
             schema_dict_returned = {200: schema_dict_returned}
+
+        if pagination_class:
+            schema_dict_returned[200] = pagination_class.response[schema_dict_returned[200]]
+            extra_query_dict = {
+                name: (type_name_, default)
+                for name, type_name_, default in pagination_class.query
+            }
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
@@ -178,11 +189,11 @@ def djapify(view_func: Callable = None,
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-        set_schema(view_func, _wrapped_view)
+        set_schema(view_func, _wrapped_view, extra_query_dict)
 
         _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
         if not _wrapped_view.auth_mechanism:
-            _wrapped_view.auth_mechanism = auth_mechanism_obj
+            _wrapped_view.auth_mechanism = auth
 
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):

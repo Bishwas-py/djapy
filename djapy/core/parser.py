@@ -69,9 +69,12 @@ class RequestDataParser:
 
 class ResponseDataParser:
 
-    def __init__(self, status: int, data: Any, schemas: Dict[int, Union[Type[Schema], type]]):
+    def __init__(self, status: int, data: Any, schemas: Dict[int, Union[Type[Schema], type]], request: HttpRequest,
+                 input_data: Dict[str, Any] = None):
         self.status = status
         self.data = data
+        self.request = request
+        self.input_data = input_data
         if not isinstance(schemas, dict):
             raise create_validation_error("Response", "schemas", "invalid_type")
         self.schemas = schemas
@@ -91,7 +94,10 @@ class ResponseDataParser:
 
     def parse_response_data(self) -> Dict[str, Any]:
         response_model = self.create_response_model()
-        validated_obj = response_model.model_validate({JSON_OUTPUT_PARSE_NAME: self.data})
+        validated_obj = response_model.model_validate(
+            {JSON_OUTPUT_PARSE_NAME: self.data},
+            context={"request": self.request, "input_data": self.input_data}
+        )
 
         # Deconstruct the object data
         destructured_object_data = validated_obj.dict()
