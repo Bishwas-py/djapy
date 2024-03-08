@@ -1,10 +1,8 @@
-from functools import wraps
-
-from django.core.paginator import Paginator
-from typing import Type, Any, Optional, Union, Tuple, List, Dict, Literal, Generic, TypeVar
+from django.core.paginator import Paginator, EmptyPage
+from typing import Generic, TypeVar
 
 from django.db.models import QuerySet
-from pydantic import create_model, model_validator, field_validator
+from pydantic import model_validator, conint
 
 from djapy.schema import Schema
 
@@ -15,27 +13,36 @@ class OffsetLimitPagination:
     """Pagination based on offset and limit."""
 
     query = [
-        ('offset', int, 10),
-        ('limit', int, 0)
+        ('offset', conint(gt=0), 10),
+        ('limit', conint(gt=0), 1)
     ]
 
     class response(Schema, Generic[T]):
         result: T
         offset: int
         limit: int
+        has_next: bool
+        has_previous: bool
 
         @model_validator(mode="before")
-        def make_data(cls, v, values):
-            queryset = v
+        def make_data(cls, queryset, info):
             if not isinstance(queryset, QuerySet):
                 raise ValueError("The result should be a QuerySet")
-            offset = values.context['request'].GET.get('offset', 1) or 1
-            limit = values.context['request'].GET.get('limit', 10) or 10
+
+            input_data = info.context['input_data']
+            offset = input_data['offset']
+            limit = input_data['limit']
 
             pagination = Paginator(queryset, limit)
-            page = pagination.page(offset)
+            try:
+                page = pagination.page(offset)
+            except EmptyPage:
+                raise ValueError("Input data limit exceeded available data.")
+
             return {
                 "result": page.object_list,
                 "offset": page.number,
                 "limit": page.paginator.per_page,
+                "has_next": page.has_next(),
+                "has_previous": page.has_previous()
             }
