@@ -13,7 +13,7 @@ class OffsetLimitPagination:
     """Pagination based on offset and limit."""
 
     query = [
-        ('offset', conint(gt=0), 10),
+        ('offset', conint(ge=1), 10),
         ('limit', conint(gt=0), 1)
     ]
 
