@@ -1,3 +1,4 @@
+import types
 from functools import wraps
 from typing import Type, Callable
 
@@ -32,7 +33,7 @@ def paginate(pagination_class: Type[BasePagination] | None = None) -> Callable:
 
         return _wrapped_view
 
-    if callable(pagination_class):
+    if pagination_class and isinstance(pagination_class, types.FunctionType):
         view_func = pagination_class
         pagination_class = OffsetLimitPagination
         return decorator(view_func)
