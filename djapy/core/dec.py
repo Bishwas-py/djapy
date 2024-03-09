@@ -224,7 +224,6 @@ def djapify(view_func: Callable = None,
                 name: (type_name_, default)
                 for name, type_name_, default in pagination_class.query
             }
-            print(extra_query_dict)
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
