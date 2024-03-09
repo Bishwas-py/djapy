@@ -4,12 +4,12 @@ from django.http import HttpRequest
 class BaseAuthMechanism:
     def __init__(self, permissions: list[str] = None, message_response: dict = None, *args, **kwargs):
         self.message_response = message_response or {"message": "Unauthorized"}
-        self.permissions = permissions
+        self.permissions = permissions or []
 
-    def authenticate(self, request: HttpRequest, *args, **kwargs):
+    def authenticate(self, request: HttpRequest, *args, **kwargs) -> tuple[int, dict] | None:
         pass
 
-    def authorize(self, request: HttpRequest, *args, **kwargs):
+    def authorize(self, request: HttpRequest, *args, **kwargs) -> tuple[int, dict] | None:
         pass
 
     def schema(self):
@@ -26,14 +26,14 @@ class SessionAuth(BaseAuthMechanism):
 
     def authenticate(self, request: HttpRequest, *args, **kwargs):
         if not request.user.is_authenticated:
-            return {
+            return 403, {
                 "message": "Unauthorized",
                 "alias": "access_denied"
             }
 
     def authorize(self, request: HttpRequest, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_perms(self.permissions):
-            return {
+            return 403, {
                 "message": "Unauthorized",
                 "alias": "permission_denied"
             }

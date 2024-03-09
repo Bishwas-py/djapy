@@ -174,13 +174,13 @@ def djapify(view_func: Callable = None,
 
         @wraps(view_func)
         def _wrapped_view(request: HttpRequest, *args, **view_kwargs):
-            message_json_returned = _wrapped_view.auth_mechanism.authenticate(request, *args, **view_kwargs)
-            if message_json_returned:
-                return JsonResponse(message_json_returned, status=401)
+            authentication_info_tuple = _wrapped_view.auth_mechanism.authenticate(request, *args, **view_kwargs)
+            if authentication_info_tuple:
+                return JsonResponse(authentication_info_tuple[1], status=authentication_info_tuple[0])
 
-            message_json_returned = _wrapped_view.auth_mechanism.authorize(request, *args, **view_kwargs)
-            if message_json_returned:
-                return JsonResponse(message_json_returned, status=403)
+            authorization_info_tuple = _wrapped_view.auth_mechanism.authorize(request, *args, **view_kwargs)
+            if authorization_info_tuple:
+                return JsonResponse(authorization_info_tuple[1], status=authorization_info_tuple[0])
 
             djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
             djapy_message_response = getattr(view_func, 'djapy_message_response', None)
