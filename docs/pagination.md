@@ -15,12 +15,14 @@ from djapy.pagination import OffsetLimitPagination, paginate
 
 @djapify  # required
 @paginate(OffsetLimitPagination)  # required, OR just @paginate, params: offset=0, limit=10
-def todo_list(request) -> List[Todo]:
+def todo_list(request, **kwargs) -> List[Todo]:
     return Todo.objects.all()
 ```
 
 Make sure to add `paginate` decorator to your view and pass the pagination class as an argument. `List[Todo]` is the
 return type hint of the view, also for Swagger documentation.
+
+> `**kwargs` is required to pass the pagination parameters to the view.
 
 ## PageNumberPagination
 
@@ -33,7 +35,7 @@ from djapy.pagination import PageNumberPagination, paginate
 
 @djapify  # required
 @paginate(PageNumberPagination)  # required, OR just @paginate, params: page_number=1, page_size=10
-def todo_list(request) -> List[Todo]:
+def todo_list(request, **kwargs) -> List[Todo]:
     return Todo.objects.all()
 ```
 
@@ -47,7 +49,7 @@ from djapy.pagination import CursorPagination, paginate
 
 @djapify  # required
 @paginate(CursorPagination)  # required, OR just @paginate, params: cursor=0, limit=10
-def todo_list(request) -> List[Todo]:
+def todo_list(request, **kwargs) -> List[Todo]:
     return Todo.objects.all()
 ```
 
@@ -63,6 +65,7 @@ Here's an example of how you can do that:
 from djapy.pagination import BasePagination
 from pydantic import model_validator
 
+
 class CursorPagination(BasePagination):  # example
     """Cursor-based pagination."""
 
@@ -77,6 +80,7 @@ class CursorPagination(BasePagination):  # example
         cursor: int | None
         limit: int
         has_next: bool
+
         # ... your custom fields here
 
         @model_validator(mode="before")
