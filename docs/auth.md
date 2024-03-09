@@ -24,6 +24,7 @@ variable.
 
 ```python
 AUTH_MECHANISM = SessionAuth(permissions=['plans.todos.can_view'])
+# or just SessionAuth
 ```
 
 ## Extending Base Authentication
