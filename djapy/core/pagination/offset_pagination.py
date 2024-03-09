@@ -1,24 +1,11 @@
 import math
 
-from django.core.paginator import Paginator, EmptyPage
-from typing import Generic, TypeVar
-
+from typing import Generic
 from django.db.models import QuerySet
 from pydantic import model_validator, conint
 
+from djapy.core.typing_utils import G_TYPE
 from djapy.schema import Schema
-
-T = TypeVar('T')
-
-
-class BasicPagination:
-    """
-    Basic pagination with no features implemented. This is the structure of the pagination.
-    """
-    query = []
-
-    class response(Schema, Generic[T]):
-        pass
 
 
 class OffsetLimitPagination:
@@ -32,8 +19,8 @@ class OffsetLimitPagination:
     def __repr__(self):
         return f"OffsetLimitPagination({self.query})"
 
-    class response(Schema, Generic[T]):
-        items: T
+    class response(Schema, Generic[G_TYPE]):
+        items: G_TYPE
         offset: int
         limit: int
         has_next: bool
@@ -41,7 +28,7 @@ class OffsetLimitPagination:
         total_pages: int
 
         def __repr__(self):
-            return f"{T.__name__} with offset {self.offset} and limit {self.limit}"
+            return f"{G_TYPE.__name__} with offset {self.offset} and limit {self.limit}"
 
         @model_validator(mode="before")
         def make_data(cls, queryset, info):
