@@ -110,12 +110,40 @@ def set_schema(view_func: Callable, _wrapped_view: Callable, extra_query_dict: D
     )
 
 
+def set_auth(view_func: Callable,
+             _wrapped_view: Callable, auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None,
+             in_app_auth_mechanism: Type[BaseAuthMechanism] | BaseAuthMechanism | None):
+    """
+    Set the auth mechanism for the view function
+
+    :param view_func: The view function
+    :param _wrapped_view: The wrapped view function
+    :param auth: The auth mechanism
+    :param in_app_auth_mechanism: The auth mechanism in the app or views.py
+    """
+    wrapped_auth = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism) or auth
+
+    if inspect.isclass(wrapped_auth) and issubclass(wrapped_auth, BaseAuthMechanism):
+        wrapped_auth = wrapped_auth()
+    else:
+        wrapped_auth = wrapped_auth
+
+    if wrapped_auth is None:
+        wrapped_auth = BaseAuthMechanism()
+
+    if not isinstance(wrapped_auth, BaseAuthMechanism):
+        raise TypeError(
+            f"auth should be a class that inherits from BaseAuthMechanism, not {type(wrapped_auth)}")
+
+    _wrapped_view.auth_mechanism = wrapped_auth
+
+
 def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None,
             pagination_class: Type[OffsetLimitPagination] | None = None,
-            auth=BaseAuthMechanism()) -> Callable:
+            auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None) -> Callable:
     """
     :param view_func: A pydantic model or a view function
     :param allowed_method: A string or a list of strings to check if the view allows the method
@@ -182,7 +210,6 @@ def djapify(view_func: Callable = None,
                 name: (type_name_, default)
                 for name, type_name_, default in pagination_class.query
             }
-            print(extra_query_dict)
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
@@ -192,9 +219,7 @@ def djapify(view_func: Callable = None,
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
         set_schema(view_func, _wrapped_view, extra_query_dict)
 
-        _wrapped_view.auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
-        if not _wrapped_view.auth_mechanism:
-            _wrapped_view.auth_mechanism = auth
+        set_auth(view_func, _wrapped_view, auth, in_app_auth_mechanism)
 
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):
