@@ -1,20 +1,17 @@
 import importlib
 import inspect
-import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
-from django.urls import reverse
-from pydantic_core import InitErrorDetails
 from djapy.schema import Schema
 
-from django.http import HttpRequest, JsonResponse, HttpResponse
+from django.http import HttpRequest, JsonResponse
 from pydantic import ValidationError, create_model
 
 from .auth import BaseAuthMechanism, base_auth_obj
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from .pagination.base_pagination import BasePagination
+from djapy.pagination.base_pagination import BasePagination
 from .parser import ResponseDataParser, RequestDataParser
 from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging

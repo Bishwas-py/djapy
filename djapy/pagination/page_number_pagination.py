@@ -1,12 +1,10 @@
-import math
-
-from typing import Generic, Optional
+from typing import Generic
 
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import QuerySet
 from pydantic import model_validator
 
-from djapy.core.pagination import BasePagination
+from djapy.pagination import BasePagination
 from djapy.core.typing_utils import G_TYPE
 from djapy.schema import Schema
 
