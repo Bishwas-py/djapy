@@ -14,7 +14,7 @@ from pydantic import ValidationError, create_model
 from .auth import BaseAuthMechanism, base_auth_obj
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from .pagination.offset_pagination import OffsetLimitPagination
+from .pagination.base_pagination import BasePagination
 from .parser import ResponseDataParser, RequestDataParser
 from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging
@@ -154,7 +154,7 @@ def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None,
-            pagination_class: Type[OffsetLimitPagination] | None = None,
+            pagination_class: Type[BasePagination] | None = None,
             auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = base_auth_obj) -> Callable:
     """
     :param view_func: A pydantic model or a view function
