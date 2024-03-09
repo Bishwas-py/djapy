@@ -61,7 +61,7 @@ Here's an example of how you can do that:
 
 ```python
 from djapy.pagination import BasePagination
-
+from pydantic import model_validator
 
 class CursorPagination(BasePagination):  # example
     """Cursor-based pagination."""
