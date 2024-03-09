@@ -103,6 +103,7 @@ def get_user(request, username: str) -> {200: UserSchema, 404: str}:
 - `float` or `Optional[float]`
 - `bool`
 - `datetime`
+- `constr()` or `conint()` or `confloat()` or `condecimal()`
 
 > If anything else is passed, it will be accepted as a data parameter, not a query parameter.
 > Like: list[str], dict[str, int], etc.
@@ -116,7 +117,7 @@ The response is automatically serialized to JSON using the Pydantic model.
 from djapy import Schema
 
 
-class UserSchema(Schema):
+class UserSchema(Schema):  # or TypedDict
     username: str
     email: str
 
