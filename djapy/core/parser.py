@@ -103,3 +103,13 @@ class ResponseDataParser:
         destructured_object_data = validated_obj.dict()
 
         return destructured_object_data.get(JSON_OUTPUT_PARSE_NAME)
+
+
+def get_response_schema_dict(view_func):
+    """
+    Get the response schema dict from the view function.
+    """
+    schema_dict_returned = view_func.__annotations__.get('return', None)
+    if not isinstance(schema_dict_returned, dict):
+        schema_dict_returned = {200: schema_dict_returned}
+    return schema_dict_returned

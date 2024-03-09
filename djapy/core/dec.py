@@ -12,7 +12,7 @@ from .auth import BaseAuthMechanism, base_auth_obj
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
 from djapy.pagination.base_pagination import BasePagination
-from .parser import ResponseDataParser, RequestDataParser
+from .parser import ResponseDataParser, RequestDataParser, get_response_schema_dict
 from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging
 
@@ -151,14 +151,12 @@ def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
             tags: List[str] = None,
-            pagination_class: Type[BasePagination] | None = None,
             auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = base_auth_obj) -> Callable:
     """
     :param view_func: A pydantic model or a view function
     :param allowed_method: A string or a list of strings to check if the view allows the method
     :param openapi: A boolean to check if the view should be included in the openapi schema
     :param tags: A list of strings to tag the view in the openapi schema
-    :param pagination_class: A class that inherits from OffsetLimitPagination
     :param auth: A class that inherits from BaseAuthMechanism
     :return: A decorator that will return a JsonResponse with the schema validated data or a message
     """
@@ -208,22 +206,15 @@ def djapify(view_func: Callable = None,
 
                 return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
-        extra_query_dict = {}
-        schema_dict_returned = view_func.__annotations__.get('return', None)
-        if not isinstance(schema_dict_returned, dict):
-            schema_dict_returned = {200: schema_dict_returned}
+        schema_dict_returned = get_response_schema_dict(view_func)
 
-        if pagination_class:
-            if not issubclass(pagination_class, BasePagination):
-                pagination_type_invalid_msg = (f"pagination_class should be a class that inherits from BasePagination, "
-                                               f"not {pagination_class.__name__} or {type(pagination_class)}")
-                raise TypeError(pagination_type_invalid_msg)
+        extra_query_dict = getattr(view_func, 'extra_query_dict', {})  # (name: (type_name_, default))
+        response_wrapper = getattr(view_func, 'response_wrapper', None)  # (status, schema)
 
-            schema_dict_returned[200] = pagination_class.response[schema_dict_returned[200]]
-            extra_query_dict = {
-                name: (type_name_, default)
-                for name, type_name_, default in pagination_class.query
-            }
+        if response_wrapper:
+            status, wrapper_schema = response_wrapper
+            if status in schema_dict_returned:
+                schema_dict_returned[status] = wrapper_schema[schema_dict_returned[status]]
 
         _wrapped_view.djapy = True
         _wrapped_view.openapi = openapi
