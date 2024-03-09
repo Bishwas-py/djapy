@@ -127,9 +127,9 @@ def get_auth(view_func: Callable,
     :param auth: The auth mechanism
     :param in_app_auth_mechanism: The auth mechanism in the app or views.py
     """
-    top_auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
-    if auth == base_auth_obj and top_auth_mechanism:
-        wrapped_auth = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
+    auth = getattr(view_func, 'auth_mechanism', None) or auth
+    if auth == base_auth_obj and in_app_auth_mechanism:
+        wrapped_auth = in_app_auth_mechanism
     elif auth is None:
         return base_auth_obj
     else:
