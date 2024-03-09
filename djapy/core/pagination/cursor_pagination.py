@@ -13,13 +13,13 @@ class CursorPagination(BasePagination):
     """Cursor-based pagination."""
 
     query = [
-        ('cursor', str, '0'),
-        ('limit', conint(gt=0), 10)
+        ('cursor', conint(ge=0), 0),
+        ('limit', conint(ge=0), 1)
     ]
 
     class response(Schema, Generic[G_TYPE]):
         items: G_TYPE
-        cursor: str
+        cursor: int | None
         limit: int
         has_next: bool
 
@@ -31,15 +31,15 @@ class CursorPagination(BasePagination):
             cursor = info.context['input_data']['cursor']
             limit = info.context['input_data']['limit']
 
-            queryset = queryset.order_by('id')  # order by some field in a unique, sequential manner
-            # Convert the cursor to integer and get the subset
-            cursor = int(cursor)
-            queryset_subset = queryset.filter(id__gt=cursor)[:limit]
+            queryset = queryset.order_by('id')
 
-            has_next = len(queryset.filter(id__gt=cursor)) > limit
+            queryset_with_cursor = queryset.filter(id__gt=cursor)
 
-            # After processing the queryset, the cursor will be set to the id of the last item
-            cursor = str(queryset_subset.last().id) if has_next else None
+            has_next = queryset_with_cursor.count() > limit
+
+            queryset_subset = list(queryset_with_cursor[:limit])
+
+            cursor = queryset_subset[-1].id if queryset_subset and has_next else None
 
             return {
                 "items": queryset_subset,
