@@ -78,12 +78,17 @@ def handle_error(request, exception):
     return None
 
 
-def set_schema(view_func: Callable, _wrapped_view: Callable, extra_query_dict: Dict = None):
+def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict = None):
+    """
+    Get the query and data schema from the required parameters. Basically, for input validation.
+    :param required_params: A list of required parameters
+    :param extra_query_dict: A dictionary of extra query parameters
+    """
     query_schema_dict = {}
     data_schema_dict = {}
     if not extra_query_dict:
         extra_query_dict = {}
-    for param in view_func.required_params:
+    for param in required_params:
         is_query = is_param_query_type(param)
         is_empty = param.default is inspect.Parameter.empty
         if is_empty:
@@ -96,28 +101,29 @@ def set_schema(view_func: Callable, _wrapped_view: Callable, extra_query_dict: D
         else:
             data_schema_dict[param.name] = passable_tuple
 
-    _wrapped_view.query_schema = view_func.query_schema = create_model(
+    query_model = create_model(
         REQUEST_INPUT_SCHEMA_NAME,
         **query_schema_dict,
         **extra_query_dict,
         __base__=Schema
     )
 
-    _wrapped_view.data_schema = view_func.data_schema = create_model(
+    data_model = create_model(
         REQUEST_INPUT_SCHEMA_NAME,
         **data_schema_dict,
         __base__=Schema
     )
 
+    return query_model, data_model
 
-def set_auth(view_func: Callable,
-             _wrapped_view: Callable, auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None,
+
+def get_auth(view_func: Callable,
+             auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None,
              in_app_auth_mechanism: Type[BaseAuthMechanism] | BaseAuthMechanism | None):
     """
     Set the auth mechanism for the view function
 
     :param view_func: The view function
-    :param _wrapped_view: The wrapped view function
     :param auth: The auth mechanism
     :param in_app_auth_mechanism: The auth mechanism in the app or views.py
     """
@@ -133,9 +139,9 @@ def set_auth(view_func: Callable,
 
     if not isinstance(wrapped_auth, BaseAuthMechanism):
         raise TypeError(
-            f"auth should be a class that inherits from BaseAuthMechanism, not {type(wrapped_auth)}")
+            f"auth should be a class that inherits from BaseAuthMechanism, not {wrapped_auth.__name__} or {type(wrapped_auth)}")
 
-    _wrapped_view.auth_mechanism = wrapped_auth
+    return wrapped_auth
 
 
 def djapify(view_func: Callable = None,
@@ -217,9 +223,12 @@ def djapify(view_func: Callable = None,
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-        set_schema(view_func, _wrapped_view, extra_query_dict)
 
-        set_auth(view_func, _wrapped_view, auth, in_app_auth_mechanism)
+        query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
+        _wrapped_view.query_schema = view_func.query_schema = query_schema
+        _wrapped_view.data_schema = view_func.data_schema = data_schema
+
+        _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 
         if not getattr(_wrapped_view, 'djapy_allowed_method', None):
             if isinstance(allowed_method, str):
