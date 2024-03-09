@@ -14,7 +14,7 @@ from pydantic import ValidationError, create_model
 from .auth import BaseAuthMechanism
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from .pagination.pagination import OffsetLimitPagination
+from .pagination.offset_pagination import OffsetLimitPagination
 from .parser import ResponseDataParser, RequestDataParser
 from .labels import REQUEST_INPUT_SCHEMA_NAME
 import logging

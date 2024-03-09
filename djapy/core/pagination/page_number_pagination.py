@@ -11,6 +11,8 @@ from djapy.schema import Schema
 
 from pydantic import conint
 
+__all__ = ["PageNumberPagination"]
+
 
 class PageNumberPagination:
     """Pagination based on Page Number."""

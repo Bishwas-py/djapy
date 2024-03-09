@@ -7,6 +7,8 @@ from pydantic import model_validator, conint
 from djapy.core.typing_utils import G_TYPE
 from djapy.schema import Schema
 
+__all__ = ["OffsetLimitPagination"]
+
 
 class OffsetLimitPagination:
     """Pagination based on offset and limit."""
