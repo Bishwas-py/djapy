@@ -11,8 +11,8 @@ from djapy.schema import Schema
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError, create_model
 
-from .auth import BaseAuthMechanism
-from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_AUTH_REQUIRED_MESSAGE, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
+from .auth import BaseAuthMechanism, base_auth_obj
+from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
 from .pagination.offset_pagination import OffsetLimitPagination
 from .parser import ResponseDataParser, RequestDataParser
@@ -21,7 +21,7 @@ import logging
 
 __all__ = ['djapify']
 
-from .response import create_json_from_validation_error, create_validation_error
+from .response import create_json_from_validation_error
 from .type_check import is_param_query_type
 
 MAX_HANDLER_COUNT = 1
@@ -127,15 +127,21 @@ def get_auth(view_func: Callable,
     :param auth: The auth mechanism
     :param in_app_auth_mechanism: The auth mechanism in the app or views.py
     """
-    wrapped_auth = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism) or auth
+    top_auth_mechanism = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
+    if auth == base_auth_obj and top_auth_mechanism:
+        wrapped_auth = getattr(view_func, 'auth_mechanism', in_app_auth_mechanism)
+    elif auth is None:
+        return base_auth_obj
+    else:
+        wrapped_auth = auth
 
     if inspect.isclass(wrapped_auth) and issubclass(wrapped_auth, BaseAuthMechanism):
         wrapped_auth = wrapped_auth()
     else:
         wrapped_auth = wrapped_auth
 
-    if wrapped_auth is None:
-        wrapped_auth = BaseAuthMechanism()
+    if not wrapped_auth:
+        wrapped_auth = base_auth_obj
 
     if not isinstance(wrapped_auth, BaseAuthMechanism):
         raise TypeError(
@@ -149,7 +155,7 @@ def djapify(view_func: Callable = None,
             openapi: bool = True,
             tags: List[str] = None,
             pagination_class: Type[OffsetLimitPagination] | None = None,
-            auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None) -> Callable:
+            auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = base_auth_obj) -> Callable:
     """
     :param view_func: A pydantic model or a view function
     :param allowed_method: A string or a list of strings to check if the view allows the method
