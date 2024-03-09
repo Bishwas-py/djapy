@@ -218,7 +218,9 @@ def djapify(view_func: Callable = None,
 
         if pagination_class:
             if not issubclass(pagination_class, BasePagination):
-                raise TypeError(f"pagination_class should be a subclass of BasePagination, not {pagination_class}")
+                pagination_type_invalid_msg = (f"pagination_class should be a class that inherits from BasePagination, "
+                                               f"not {pagination_class.__name__} or {type(pagination_class)}")
+                raise TypeError(pagination_type_invalid_msg)
 
             schema_dict_returned[200] = pagination_class.response[schema_dict_returned[200]]
             extra_query_dict = {
