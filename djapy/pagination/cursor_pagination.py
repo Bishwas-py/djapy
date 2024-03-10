@@ -1,4 +1,4 @@
-from typing import Generic
+from typing import Generic, Literal
 from django.db.models import QuerySet
 from pydantic import model_validator, conint
 
@@ -14,7 +14,8 @@ class CursorPagination(BasePagination):
 
     query = [
         ('cursor', conint(ge=0), 0),
-        ('limit', conint(ge=0), 1)
+        ('limit', conint(ge=0), 1),
+        ('ordering', Literal['last', 'first'], 'last')
     ]
 
     class response(Schema, Generic[G_TYPE]):
@@ -30,10 +31,15 @@ class CursorPagination(BasePagination):
 
             cursor = info.context['input_data']['cursor']
             limit = info.context['input_data']['limit']
+            ordering = info.context['input_data']['ordering']
 
             queryset = queryset.order_by('id')
 
-            queryset_with_cursor = queryset.filter(id__gt=cursor)
+            if ordering == 'last':
+                cursor = queryset.last().id
+                queryset_with_cursor = queryset.filter(id__lt=cursor)
+            else:
+                queryset_with_cursor = queryset.filter(id__gt=cursor)
 
             has_next = queryset_with_cursor.count() > limit
 
