@@ -39,8 +39,8 @@ class RequestDataParser:
             })
             data = self.data_schema.model_validate(self.data)
             destructured_object_data = {
-                **query_data.dict(),
-                **data.dict()
+                **query_data.__dict__,
+                **data.__dict__
             }
         return destructured_object_data
 
