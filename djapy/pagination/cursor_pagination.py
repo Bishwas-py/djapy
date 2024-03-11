@@ -14,8 +14,8 @@ class CursorPagination(BasePagination):
 
     query = [
         ('cursor', conint(ge=0), 0),
-        ('limit', conint(ge=0), 1),
-        ('ordering', Literal['last', 'first'], 'last')
+        ('limit', conint(ge=1), 1),
+        ('ordering', Literal['asc', 'desc'], None),  # the ordering can be 'asc', 'desc', or None
     ]
 
     class response(Schema, Generic[G_TYPE]):
@@ -33,19 +33,29 @@ class CursorPagination(BasePagination):
             limit = info.context['input_data']['limit']
             ordering = info.context['input_data']['ordering']
 
-            queryset = queryset.order_by('id')
+            # apply ordering to the queryset
+            if ordering == 'desc':
+                queryset = queryset.order_by('-id')  # descending order
+            else:  # default to ascending order
+                queryset = queryset.order_by('id')  # ascending order
 
-            if ordering == 'last':
-                cursor = queryset.last().id
-                queryset_with_cursor = queryset.filter(id__lt=cursor)
+            # apply cursor to the queryset
+            if ordering == 'desc':
+                queryset_with_cursor = queryset.filter(id__lt=cursor)  # for descending order
             else:
-                queryset_with_cursor = queryset.filter(id__gt=cursor)
+                queryset_with_cursor = queryset.filter(id__gt=cursor)  # for ascending order
 
             has_next = queryset_with_cursor.count() > limit
 
+            # get subset
             queryset_subset = list(queryset_with_cursor[:limit])
 
-            cursor = queryset_subset[-1].id if queryset_subset and has_next else None
+            # set new cursor
+            if queryset_subset:
+                new_cursor = queryset_subset[-1].id if ordering == 'desc' else queryset_subset[0].id
+                cursor = new_cursor if has_next else None
+            else:
+                cursor = None
 
             return {
                 "items": queryset_subset,
