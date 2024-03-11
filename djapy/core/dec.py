@@ -66,9 +66,16 @@ def handle_error(request, exception):
         exception_param = _function_signature.parameters.get('exception')
         if exception.__class__ == exception_param.annotation:
             _data_from_error = _errorhandler_function(request, exception)
-            if _data_from_error and isinstance(_data_from_error, dict):
+            if isinstance(_data_from_error, JsonResponse):
+                return _data_from_error
+
+            if isinstance(_data_from_error, tuple):
+                status, response = _data_from_error
+            else:
+                status, response = 400, _data_from_error
+            if response and isinstance(response, dict):
                 try:
-                    return JsonResponse(_data_from_error, status=400)
+                    return JsonResponse(_data_from_error, status=status, safe=False)
                 except TypeError as e:
                     logging.exception(e)
                     return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
