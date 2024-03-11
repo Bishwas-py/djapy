@@ -75,7 +75,7 @@ def handle_error(request, exception):
                 status, response = 400, _data_from_error
             if response and isinstance(response, dict):
                 try:
-                    return JsonResponse(_data_from_error, status=status, safe=False)
+                    return JsonResponse(response, status=status, safe=False)
                 except TypeError as e:
                     logging.exception(e)
                     return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
