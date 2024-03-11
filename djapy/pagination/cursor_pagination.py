@@ -13,15 +13,16 @@ class CursorPagination(BasePagination):
     """Cursor-based pagination."""
 
     query = [
-        ('cursor', conint(ge=0), 0),
+        ('cursor', conint(ge=0) | Literal['null'] | None, None),
         ('limit', conint(ge=1), 1),
-        ('ordering', Literal['asc', 'desc'], None),  # the ordering can be 'asc', 'desc', or None
+        ('ordering', Literal['asc', 'desc'], 'asc'),  # the ordering can be 'asc', 'desc', or None
     ]
 
     class response(Schema, Generic[G_TYPE]):
         items: G_TYPE
         cursor: int | None
         limit: int
+        ordering: Literal['asc', 'desc']
         has_next: bool
 
         @model_validator(mode="before")
@@ -32,12 +33,26 @@ class CursorPagination(BasePagination):
             cursor = info.context['input_data']['cursor']
             limit = info.context['input_data']['limit']
             ordering = info.context['input_data']['ordering']
+            if cursor == 'null':
+                cursor = None
 
             # apply ordering to the queryset
             if ordering == 'desc':
                 queryset = queryset.order_by('-id')  # descending order
             else:  # default to ascending order
                 queryset = queryset.order_by('id')  # ascending order
+
+            if not queryset.exists():
+                return {
+                    "items": [],
+                    "cursor": None,
+                    "limit": limit,
+                    "has_next": False,
+                    "ordering": ordering
+                }
+
+            if cursor is None:
+                cursor = queryset.first().id
 
             # apply cursor to the queryset
             if ordering == 'desc':
@@ -62,4 +77,5 @@ class CursorPagination(BasePagination):
                 "cursor": cursor,
                 "limit": limit,
                 "has_next": has_next,
+                "ordering": ordering
             }
