@@ -20,6 +20,7 @@ class OpenAPI:
     tags = []
     security_schema = {}
     security = {}
+    has_security_schema = False
 
     def __init__(self):
         self.resolved_url = get_resolver()
@@ -34,6 +35,7 @@ class OpenAPI:
         if openapi_path_.export_components:
             self.components["schemas"].update(openapi_path_.export_components)
         if openapi_path_.export_security_schemes:
+            self.has_security_schema = True
             self.security_schema.update(openapi_path_.export_security_schemes)
         if openapi_path_.export_tags:
             self.tags.extend(openapi_path_.export_tags)
@@ -52,7 +54,8 @@ class OpenAPI:
 
     def dict(self):
         self.generate_paths(self.resolved_url.url_patterns)
-        self.components["securitySchemes"] = self.security_schema
+        if self.has_security_schema:
+            self.components["securitySchemes"] = self.security_schema
         return {
             'openapi': self.openapi,
             'info': self.info.dict(),
