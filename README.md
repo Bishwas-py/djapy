@@ -31,4 +31,6 @@ To create a new project, run the following command:
 django-admin startproject <project_name>
 ```
 
+> See sample [project](https://github.com/Bishwas-py/djapy-todo).
+
 More on this in the [Usage](https://bishwas-py.github.io/djapy/usage/) section.
