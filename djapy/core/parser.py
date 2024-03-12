@@ -13,10 +13,11 @@ from .labels import REQUEST_INPUT_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON
 
 class RequestDataParser:
     def __init__(self, request: HttpRequest, view_func, view_kwargs):
-        self.required_params = view_func.required_params
+        self.view_func = view_func
         self.query_schema = view_func.query_schema
         self.data_schema = view_func.data_schema
         self.single_data_schema = view_func.single_data_schema
+        self.single_data_key = view_func.single_data_key
         self.view_kwargs = view_kwargs
         self.request = request
         self.query_data = {}
@@ -30,7 +31,7 @@ class RequestDataParser:
         self.set_request_data()
         if self.single_data_schema:
             validated_obj = self.single_data_schema.validate(self.data)
-            destructured_data_dict = {self.required_params[0].name: validated_obj}
+            destructured_data_dict = {self.single_data_key: validated_obj}
         else:
             data = self.data_schema.model_validate(self.data)
             destructured_data_dict = data.__dict__
@@ -43,6 +44,7 @@ class RequestDataParser:
             **query_data.__dict__,
             **destructured_data_dict
         }
+        print(destructured_object_data)
         return destructured_object_data
 
     def set_request_data(self):
