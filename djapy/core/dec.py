@@ -233,6 +233,11 @@ def djapify(view_func: Callable = None,
         query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
         _wrapped_view.query_schema = view_func.query_schema = query_schema
         _wrapped_view.data_schema = view_func.data_schema = data_schema
+        if len(data_schema.__annotations__) == 1:
+            single_data_schema = list(data_schema.__annotations__.values())[0]
+        else:
+            single_data_schema = None
+        _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
 
         _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 

@@ -66,8 +66,8 @@ class OpenAPI_Path:
         self.set_request_body()
 
     def set_request_body(self):
-        if len(self.view_func.required_params) == 1 and (schema := schema_type(self.view_func.required_params[0])):
-            prepared_schema = schema.schema(ref_template=REF_MODAL_TEMPLATE)
+        if self.view_func.single_data_schema:
+            prepared_schema = self.view_func.single_data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
         else:
             prepared_schema = self.view_func.data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
         if "$defs" in prepared_schema:

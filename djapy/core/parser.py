@@ -16,6 +16,7 @@ class RequestDataParser:
         self.required_params = view_func.required_params
         self.query_schema = view_func.query_schema
         self.data_schema = view_func.data_schema
+        self.single_data_schema = view_func.single_data_schema
         self.view_kwargs = view_kwargs
         self.request = request
         self.query_data = {}
@@ -27,21 +28,21 @@ class RequestDataParser:
         Parse the request data and validate it with the data model.
         """
         self.set_request_data()
-        if len(self.required_params) == 1 and (schema := schema_type(self.required_params[0])):
-            validated_obj = schema.validate(self.data)
-            destructured_object_data = {
-                self.required_params[0].name: validated_obj
-            }
+        if self.single_data_schema:
+            validated_obj = self.single_data_schema.validate(self.data)
+            destructured_data_dict = {self.required_params[0].name: validated_obj}
         else:
-            query_data = self.query_schema.model_validate({
-                **self.query_data,
-                **self.line_kwargs
-            })
             data = self.data_schema.model_validate(self.data)
-            destructured_object_data = {
-                **query_data.__dict__,
-                **data.__dict__
-            }
+            destructured_data_dict = data.__dict__
+
+        query_data = self.query_schema.model_validate({
+            **self.query_data,
+            **self.line_kwargs
+        })
+        destructured_object_data = {
+            **query_data.__dict__,
+            **destructured_data_dict
+        }
         return destructured_object_data
 
     def set_request_data(self):
