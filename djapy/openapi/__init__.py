@@ -106,7 +106,7 @@ class OpenAPI:
 def _render_cdn_template(
         request: HttpRequest, template_path: Path, context: Optional[dict] = None
 ) -> HttpResponse:
-    "this is helper to find and render html template when ninja is not in INSTALLED_APPS"
+    "this is helper to find and render html template when djapy is not in INSTALLED_APPS"
     from django.template import RequestContext, Template
 
     tpl = Template(template_path.read_text())
