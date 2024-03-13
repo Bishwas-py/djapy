@@ -1,8 +1,9 @@
 import types
+from http.client import HTTPResponse
 from inspect import Parameter, get_annotations
-from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated
-
+from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated, Dict
 from pydantic import constr, StringConstraints
+from typing_extensions import TypedDict
 
 from ..schema import Schema
 
@@ -102,10 +103,13 @@ def basic_query_schema(param: Parameter | str, default=None):
 
 def schema_type(param: Parameter | object):
     if isinstance(param, Parameter):
-        object_ = param.annotation
+        type_object_ = param.annotation
     else:
-        object_ = param
-    if hasattr(object_, "Config") and (
-            issubclass(object_, Schema) or isinstance(object_, Schema)):
-        return object_
+        type_object_ = param
+    if hasattr(type_object_, "Config") and issubclass(type_object_, Schema) or isinstance(type_object_, Schema):
+        return type_object_
     return None
+
+
+def is_data_type(type_object_):
+    return not isinstance(type_object_, HTTPResponse)

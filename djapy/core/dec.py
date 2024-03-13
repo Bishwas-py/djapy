@@ -19,7 +19,7 @@ import logging
 __all__ = ['djapify']
 
 from .response import create_json_from_validation_error
-from .type_check import is_param_query_type
+from .type_check import is_param_query_type, schema_type, is_data_type
 
 MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
@@ -102,7 +102,7 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
 
         if is_query:
             query_schema_dict[param.name] = passable_tuple
-        else:
+        elif is_data_type(param.annotation):
             data_schema_dict[param.name] = passable_tuple
 
     query_model = create_model(
