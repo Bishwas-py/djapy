@@ -1,9 +1,8 @@
+import inspect
 import types
-from http.client import HTTPResponse
-from inspect import Parameter, get_annotations
-from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated, Dict
-from pydantic import constr, StringConstraints
-from typing_extensions import TypedDict
+from inspect import Parameter
+from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated
+from django.http import HttpResponseBase, HttpRequest
 
 from ..schema import Schema
 
@@ -112,4 +111,9 @@ def schema_type(param: Parameter | object):
 
 
 def is_data_type(type_object_):
-    return not isinstance(type_object_, HTTPResponse)
+    return (
+            type_object_ and
+            inspect.isclass(type_object_) and
+            not issubclass(type_object_, HttpResponseBase) and
+            not issubclass(type_object_, HttpRequest)
+    )
