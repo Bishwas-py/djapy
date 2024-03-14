@@ -208,7 +208,8 @@ def djapify(view_func: Callable = None,
                 response = HttpResponse(content_type="application/json")
                 parser = RequestDataParser(request, view_func, view_kwargs)
                 _input_data = parser.parse_request_data()
-                _input_data['response'] = response
+                if 'response' in view_func.required_params:
+                    _input_data['response'] = response
                 response_from_view_func = view_func(request, *args, **_input_data)
 
                 status_code, response_data = response_from_view_func \
@@ -257,9 +258,13 @@ def djapify(view_func: Callable = None,
         if len(data_schema.__annotations__) == 1:
             single_data_schema = list(data_schema.__annotations__.values())[0]
             single_data_key = list(data_schema.__annotations__.keys())[0]
+            if not issubclass(single_data_schema, Schema):
+                single_data_schema = None
+                single_data_key = None
         else:
             single_data_schema = None
             single_data_key = None
+
         _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
         _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
 
