@@ -112,7 +112,6 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
         extra_query_dict = {}
     for param in required_params:
         is_query = is_param_query_type(param)
-        print(param)
         if param.annotation is inspect.Parameter.empty:
             raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
                             f"`def view_func({param.name}: str):`")
@@ -235,8 +234,6 @@ def djapify(view_func: Callable = None,
                 response.status_code = status_code
                 response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
                 return response
-
-
             except Exception as exception:
                 logging.exception(exception)
 
