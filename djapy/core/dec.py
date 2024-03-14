@@ -269,7 +269,7 @@ def djapify(view_func: Callable = None,
         if len(data_schema.__annotations__) == 1:
             single_data_schema = list(data_schema.__annotations__.values())[0]
             single_data_key = list(data_schema.__annotations__.keys())[0]
-            if not issubclass(single_data_schema, Schema):
+            if inspect.isclass(single_data_schema) and not issubclass(single_data_schema, Schema):
                 single_data_schema = None
                 single_data_key = None
         else:
