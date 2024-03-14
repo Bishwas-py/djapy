@@ -8,7 +8,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from djapy.schema import Schema
 
-from django.http import HttpRequest, JsonResponse, HttpResponse
+from django.http import HttpRequest, JsonResponse, HttpResponse, HttpResponseBase
 from pydantic import ValidationError, create_model
 
 from .auth import BaseAuthMechanism, base_auth_obj
@@ -218,6 +218,8 @@ def djapify(view_func: Callable = None,
                     _input_data[view_func.in_response_param.name] = response
 
                 response_from_view_func = view_func(request, *args, **_input_data)
+                if issubclass(response_from_view_func.__class__, HttpResponseBase):
+                    return response_from_view_func
 
                 status_code, response_data = response_from_view_func \
                     if isinstance(response_from_view_func, tuple) else (200, response_from_view_func)
