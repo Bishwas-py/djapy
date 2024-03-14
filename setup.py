@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="djapy",
-    version="0.1.91",
+    version="0.1.92",
     description="Do not quit using Django just because of Django Rest Framework, Django is JSOMe",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -14,6 +14,9 @@ setup(
     packages=find_packages(include=["djapy", "djapy.*"]),
     package_data={
         "djapy": ["templates/djapy/*.html"]
+    },
+    project_urls={
+        "Documentation": "https://djapy.io",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
