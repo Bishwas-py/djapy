@@ -27,6 +27,6 @@ class Payload:
 
 def payload(type_: G_TYPE) -> G_TYPE:
     """
-    Enforces the type of the payload to be a Schema or a basic type.
+    Enforces any type to be received as a payload.
     """
     return Payload(type_)
