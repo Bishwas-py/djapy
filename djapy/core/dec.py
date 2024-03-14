@@ -176,6 +176,16 @@ def get_in_response_param(required_params: List[inspect.Parameter]):
     return None
 
 
+def get_single_data_schema(data_schema):
+    if len(data_schema.__annotations__) == 1:
+        single_data_schema = list(data_schema.__annotations__.values())[0]
+        if inspect.isclass(single_data_schema):
+            if issubclass(single_data_schema, Schema):
+                single_data_key = list(data_schema.__annotations__.keys())[0]
+                return single_data_key, single_data_schema
+    return None, None
+
+
 def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
@@ -266,15 +276,8 @@ def djapify(view_func: Callable = None,
         query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
         _wrapped_view.query_schema = view_func.query_schema = query_schema
         _wrapped_view.data_schema = view_func.data_schema = data_schema
-        if len(data_schema.__annotations__) == 1:
-            single_data_schema = list(data_schema.__annotations__.values())[0]
-            single_data_key = list(data_schema.__annotations__.keys())[0]
-            if inspect.isclass(single_data_schema) and not issubclass(single_data_schema, Schema):
-                single_data_schema = None
-                single_data_key = None
-        else:
-            single_data_schema = None
-            single_data_key = None
+
+        single_data_key, single_data_schema = get_single_data_schema(data_schema)
 
         _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
         _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
