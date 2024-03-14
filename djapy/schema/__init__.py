@@ -1,4 +1,4 @@
-from typing import Generic
+from typing import Generic, NewType, Type, TypeAlias, TypeVar
 
 from pydantic import BaseModel
 
@@ -20,5 +20,10 @@ class Schema(BaseModel):
         description: dict = {}
 
 
-class unquery(Generic[G_TYPE]):
-    pass
+class Unquery:
+    def __init__(self, type_: G_TYPE):
+        self.unquery_type = type_
+
+
+def unquery(type_: G_TYPE) -> G_TYPE:
+    return Unquery(type_)

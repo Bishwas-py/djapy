@@ -112,6 +112,7 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
         extra_query_dict = {}
     for param in required_params:
         is_query = is_param_query_type(param)
+        print(param)
         if param.annotation is inspect.Parameter.empty:
             raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
                             f"`def view_func({param.name}: str):`")
@@ -169,6 +170,13 @@ def get_auth(view_func: Callable,
     return wrapped_auth
 
 
+def get_in_response_param(required_params: List[inspect.Parameter]):
+    for param in required_params:
+        if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
+            return param
+    return None
+
+
 def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
@@ -187,10 +195,7 @@ def djapify(view_func: Callable = None,
     def decorator(view_func):
         view_func.required_params = get_required_params(view_func)
         view_func.in_response_param = None
-        for param in view_func.required_params:
-            if issubclass(param.annotation, HttpResponse):
-                view_func.in_response_param = param
-                break
+        view_func.in_response_param = get_in_response_param(view_func.required_params)
         view_func_module = importlib.import_module(view_func.__module__)
         in_app_auth_mechanism = getattr(view_func_module, IN_APP_AUTH_MECHANISM_NAME, None)
 

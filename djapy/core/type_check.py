@@ -5,7 +5,7 @@ from typing import Union, get_args, get_origin, Literal, List, Optional, Annotat
 
 from django.http import HttpResponse, HttpRequest, HttpResponseBase
 
-from ..schema import Schema
+from ..schema import Schema, Unquery
 
 BASIC_TYPES = {
     "str": "string",
@@ -133,8 +133,7 @@ def is_data_type(param: Parameter):
     if is_schemable_type(param):
         return param.annotation
 
-    type_arg = get_args(param.annotation)
-    if is_originally_basic_type(type_arg[0]):
-        return type_arg[0]
+    if isinstance(param.annotation, Unquery):
+        return param.annotation.unquery_type
 
     return None
