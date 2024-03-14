@@ -1,13 +1,18 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TypedDict
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.urls import URLPattern, get_resolver, path, reverse
 
 from .defaults import ABS_TPL_PATH
-from .info import Info
+from .info import Info, Contact, License
 from .openapi_path import OpenAPI_Path
+
+
+class PassedBaseUrl(TypedDict):
+    url: str
+    description: str
 
 
 class OpenAPI:
@@ -20,7 +25,9 @@ class OpenAPI:
     tags = []
     security_schema = {}
     security = {}
-    has_security_schema = False
+    passed_base_urls = None
+    contact = None
+    license = None
 
     def __init__(self):
         self.resolved_url = get_resolver()
@@ -54,8 +61,13 @@ class OpenAPI:
             if hasattr(url_pattern, 'url_patterns'):
                 self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
 
-    def dict(self):
+    def dict(self, request: HttpRequest):
         self.generate_paths(self.resolved_url.url_patterns)
+        servers = [
+            {'url': request.build_absolute_uri('/'), 'description': 'Local server'},
+        ]
+        if self.passed_base_urls:
+            servers.extend(self.passed_base_urls)
         return {
             'openapi': self.openapi,
             'info': self.info.dict(),
@@ -63,22 +75,33 @@ class OpenAPI:
             'components': self.components,
             '$defs': self.definitions,
             'tags': self.tags,
-            'security': self.security
+            'security': self.security,
+            'servers': servers,
+            'contact': self.contact,
+            'license': self.license,
         }
 
     def set_basic_info(
             self, title: str, description, version="1.0.0",
             tags_info=None, security_schema: dict = None,
-            security: dict = None):
+            security: dict = None,
+            passed_base_url: Optional[list[PassedBaseUrl]] = None,
+            contact: Contact = None,
+            license_: License = None,
+    ):
         self.info.title = title
         self.info.description = description
         self.info.version = version
+        self.info.contact = contact
+        self.info.license = license_
         self.tags.extend(tags_info or [])
         self.security_schema = security_schema or {}
         self.security = security or {}
+        self.passed_base_urls = passed_base_url
 
     def get_openapi(self, request):
-        return JsonResponse(self.dict())
+        openapi_dict = self.dict(request)
+        return JsonResponse(openapi_dict)
 
     @staticmethod
     def render_swagger_ui(request):
