@@ -1,6 +1,10 @@
+from typing import Generic
+
 from pydantic import BaseModel
 
 __all__ = ['Schema', 'unquery']
+
+from djapy.core.typing_utils import G_TYPE
 
 
 class Schema(BaseModel):
@@ -11,14 +15,10 @@ class Schema(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         from_attributes = True
-        is_query = False
 
     class Info:
         description: dict = {}
 
 
-class unquery:
-    """
-    Distracts query params from getting into query params, and makes them data/payload
-    """
+class unquery(Generic[G_TYPE]):
     pass

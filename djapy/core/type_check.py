@@ -2,11 +2,12 @@ import inspect
 import types
 from inspect import Parameter
 from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated
-from django.http import HttpResponseBase, HttpRequest
+
+from django.http import HttpResponse, HttpRequest, HttpResponseBase
 
 from ..schema import Schema
 
-QUERY_BASIC_TYPES = {
+BASIC_TYPES = {
     "str": "string",
     "int": "integer",
     "float": "number",
@@ -15,18 +16,20 @@ QUERY_BASIC_TYPES = {
     "uuid": "uuid"
 }
 
-
-def is_literal_of_string(type_hint):
-    origin = get_origin(type_hint)
-    args = get_args(type_hint) if origin == Literal else []
-
-    return origin == Literal and all(isinstance(arg, str) for arg in args)
+BASIC_URL_QUERY_TYPES = {
+    **BASIC_TYPES,
+    "slug": "string",
+}
 
 
-def get_type_name(type_):
-    if get_origin(type_) in [Literal, List, Union, Optional]:
+def get_type_name(type_, *args):
+    if get_origin(type_) in [Literal, List, Union, Optional, *args]:
         return get_type_name(get_args(type_)[0]) if get_args(type_) else None
     return type_.__name__ if hasattr(type_, "__name__") else type(type_).__name__
+
+
+def is_originally_basic_type(annotation):
+    return all(get_type_name(type_) in BASIC_TYPES for type_ in get_args(annotation))
 
 
 def is_union_of_basic_types(annotation):
@@ -45,15 +48,14 @@ def is_union_of_basic_types(annotation):
     """
     if not isinstance(annotation, types.UnionType):
         return False
-
-    return all(get_type_name(type_) in QUERY_BASIC_TYPES for type_ in get_args(annotation))
+    return is_originally_basic_type(annotation)
 
 
 def is_base_query_type(annotation):
     """
     Basically checks if the parameter is a basic query type.
     """
-    if get_type_name(annotation) in QUERY_BASIC_TYPES:
+    if get_type_name(annotation) in BASIC_TYPES:
         return True
     if is_union_of_basic_types(annotation):
         return True
@@ -85,18 +87,12 @@ def is_param_query_type(param: Parameter):
     return False
 
 
-BASIC_URL_QUERY_TYPES = {
-    **QUERY_BASIC_TYPES,
-    "slug": "string",
-}
-
-
 def basic_query_schema(param: Parameter | str, default=None):
     type_name = None
     if isinstance(param, str):
         type_name = BASIC_URL_QUERY_TYPES.get(param)
     elif param:
-        type_name = QUERY_BASIC_TYPES.get(param.annotation.__name__)
+        type_name = BASIC_TYPES.get(param.annotation.__name__)
     return {"type": type_name or default}
 
 
@@ -110,10 +106,24 @@ def schema_type(param: Parameter | object):
     return None
 
 
-def is_data_type(type_object_):
-    return (
-            type_object_ and
-            inspect.isclass(type_object_) and
-            not issubclass(type_object_, HttpResponseBase) and
-            not issubclass(type_object_, HttpRequest)
-    )
+def is_django_type(param: Parameter):
+    """
+    Checks if the parameter is a django type, or unquery[str, int, float, bool]
+    """
+    if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
+        return True
+    return False
+
+
+def is_data_type(param: Parameter):
+    """
+    Checks if the parameter is a data type, or unquery[str, int, float, bool]
+    """
+    if is_django_type(param):
+        return None
+    if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
+        return param.annotation
+    type_arg = get_args(param.annotation)
+    if is_originally_basic_type(type_arg[0]):
+        return type_arg[0]
+    return None

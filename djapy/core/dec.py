@@ -82,6 +82,21 @@ def handle_error(request, exception):
     return None
 
 
+def get_passable_tuple(param: inspect.Parameter, annotation=None):
+    """
+    Get a passable tuple from the parameter
+    for the pydantic model creation.
+    """
+    if annotation is None:
+        annotation = param.annotation
+    is_empty = param.default is inspect.Parameter.empty
+    if is_empty:
+        passable_tuple = (annotation, ...)
+    else:
+        passable_tuple = (annotation, param.default)
+    return passable_tuple
+
+
 def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict = None):
     """
     Get the query and data schema from the required parameters. Basically, for input validation.
@@ -94,16 +109,13 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
         extra_query_dict = {}
     for param in required_params:
         is_query = is_param_query_type(param)
-        is_empty = param.default is inspect.Parameter.empty
-        if is_empty:
-            passable_tuple = (param.annotation, ...)
-        else:
-            passable_tuple = (param.annotation, param.default)
-
+        if param.annotation is inspect.Parameter.empty:
+            raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
+                            f"`def view_func({param.name}: str):`")
         if is_query:
-            query_schema_dict[param.name] = passable_tuple
-        elif is_data_type(param.annotation):
-            data_schema_dict[param.name] = passable_tuple
+            query_schema_dict[param.name] = get_passable_tuple(param)
+        elif data_type := is_data_type(param):
+            data_schema_dict[param.name] = get_passable_tuple(param, data_type)
 
     query_model = create_model(
         REQUEST_INPUT_SCHEMA_NAME,

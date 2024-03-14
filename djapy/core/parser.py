@@ -44,7 +44,6 @@ class RequestDataParser:
             **query_data.__dict__,
             **destructured_data_dict
         }
-        print(destructured_object_data)
         return destructured_object_data
 
     def set_request_data(self):
