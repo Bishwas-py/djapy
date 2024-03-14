@@ -186,6 +186,11 @@ def djapify(view_func: Callable = None,
 
     def decorator(view_func):
         view_func.required_params = get_required_params(view_func)
+        view_func.in_response_param = None
+        for param in view_func.required_params:
+            if issubclass(param.annotation, HttpResponse):
+                view_func.in_response_param = param
+                break
         view_func_module = importlib.import_module(view_func.__module__)
         in_app_auth_mechanism = getattr(view_func_module, IN_APP_AUTH_MECHANISM_NAME, None)
 
@@ -208,8 +213,10 @@ def djapify(view_func: Callable = None,
                 response = HttpResponse(content_type="application/json")
                 parser = RequestDataParser(request, view_func, view_kwargs)
                 _input_data = parser.parse_request_data()
-                if 'response' in view_func.required_params:
-                    _input_data['response'] = response
+
+                if view_func.in_response_param:
+                    _input_data[view_func.in_response_param.name] = response
+
                 response_from_view_func = view_func(request, *args, **_input_data)
 
                 status_code, response_data = response_from_view_func \
