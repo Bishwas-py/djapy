@@ -115,15 +115,26 @@ def is_django_type(param: Parameter):
     return False
 
 
+def is_schemable_type(param: Parameter):
+    """
+    Checks if the parameter is a schemable type, or unquery[str, int, float, bool]
+    """
+    if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
+        return True
+    return False
+
+
 def is_data_type(param: Parameter):
     """
     Checks if the parameter is a data type, or unquery[str, int, float, bool]
     """
     if is_django_type(param):
         return None
-    if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
+    if is_schemable_type(param):
         return param.annotation
+
     type_arg = get_args(param.annotation)
     if is_originally_basic_type(type_arg[0]):
         return type_arg[0]
+
     return None

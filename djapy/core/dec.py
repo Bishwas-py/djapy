@@ -1,11 +1,14 @@
 import importlib
 import inspect
+import json
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
+from django.core.serializers.json import DjangoJSONEncoder
+
 from djapy.schema import Schema
 
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, HttpResponse
 from pydantic import ValidationError, create_model
 
 from .auth import BaseAuthMechanism, base_auth_obj
@@ -202,16 +205,22 @@ def djapify(view_func: Callable = None,
             if request.method not in djapy_allowed_method:
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
+                response = HttpResponse(content_type="application/json")
                 parser = RequestDataParser(request, view_func, view_kwargs)
                 _input_data = parser.parse_request_data()
+                _input_data['response'] = response
                 response_from_view_func = view_func(request, *args, **_input_data)
 
-                status, response = response_from_view_func if isinstance(response_from_view_func, tuple) else (
-                    200, response_from_view_func)
+                status_code, response_data = response_from_view_func \
+                    if isinstance(response_from_view_func, tuple) else (200, response_from_view_func)
 
-                parser = ResponseDataParser(status, response, schema_dict_returned, request, _input_data)
+                parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
                 parsed_data = parser.parse_response_data()
-                return JsonResponse(parsed_data, status=status, safe=False)
+
+                response.status_code = status_code
+                response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
+                return response
+
 
             except Exception as exception:
                 logging.exception(exception)
