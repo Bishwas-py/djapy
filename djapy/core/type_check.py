@@ -5,7 +5,7 @@ from typing import Union, get_args, get_origin, Literal, List, Optional, Annotat
 
 from django.http import HttpResponse, HttpRequest, HttpResponseBase
 
-from ..schema import Schema, Unquery
+from ..schema import Schema, Payload
 
 BASIC_TYPES = {
     "str": "string",
@@ -108,7 +108,7 @@ def schema_type(param: Parameter | object):
 
 def is_django_type(param: Parameter):
     """
-    Checks if the parameter is a django type, or unquery[str, int, float, bool]
+    Checks if the parameter is a django type, or payload[str, int, float, bool]
     """
     if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
         return True
@@ -117,7 +117,7 @@ def is_django_type(param: Parameter):
 
 def is_schemable_type(param: Parameter):
     """
-    Checks if the parameter is a schemable type, or unquery[str, int, float, bool]
+    Checks if the parameter is a schemable type, or payload[str, int, float, bool]
     """
     if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
         return True
@@ -126,14 +126,13 @@ def is_schemable_type(param: Parameter):
 
 def is_data_type(param: Parameter):
     """
-    Checks if the parameter is a data type, or unquery[str, int, float, bool]
+    Checks if the parameter is a data type, or payload[str, int, float, bool]
     """
+    if isinstance(param.annotation, Payload):
+        return param.annotation.unquery_type
     if is_django_type(param):
         return None
     if is_schemable_type(param):
         return param.annotation
-
-    if isinstance(param.annotation, Unquery):
-        return param.annotation.unquery_type
 
     return None

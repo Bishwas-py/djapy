@@ -2,7 +2,7 @@ from typing import Generic, NewType, Type, TypeAlias, TypeVar
 
 from pydantic import BaseModel
 
-__all__ = ['Schema', 'unquery']
+__all__ = ['Schema', 'payload']
 
 from djapy.core.typing_utils import G_TYPE
 
@@ -20,10 +20,13 @@ class Schema(BaseModel):
         description: dict = {}
 
 
-class Unquery:
+class Payload:
     def __init__(self, type_: G_TYPE):
         self.unquery_type = type_
 
 
-def unquery(type_: G_TYPE) -> G_TYPE:
-    return Unquery(type_)
+def payload(type_: G_TYPE) -> G_TYPE:
+    """
+    Enforces the type of the payload to be a Schema or a basic type.
+    """
+    return Payload(type_)
