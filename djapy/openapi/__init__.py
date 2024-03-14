@@ -76,9 +76,7 @@ class OpenAPI:
             '$defs': self.definitions,
             'tags': self.tags,
             'security': self.security,
-            'servers': servers,
-            'contact': self.contact,
-            'license': self.license,
+            'servers': servers
         }
 
     def set_basic_info(

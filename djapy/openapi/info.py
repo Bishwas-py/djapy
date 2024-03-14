@@ -27,5 +27,5 @@ class Info:
             "version": self.version,
             "description": self.description,
             "license": self.license,
-            "contact": self.contact,
+            "contact": self.contact
         }
