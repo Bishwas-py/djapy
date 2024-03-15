@@ -115,7 +115,9 @@ class OpenAPI:
             }),
             "dark_mode": is_dark_mode,
             "icons": icons,
-            "active_icon": icons["light_mode" if is_dark_mode else "dark_mode"]
+            "active_icon": icons["light_mode" if is_dark_mode else "dark_mode"],
+            "add_csrf": True,
+            "csrf_token": request.COOKIES.get("csrftoken"),
         })
 
     def get_urls(self):

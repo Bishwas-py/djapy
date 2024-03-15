@@ -53,7 +53,17 @@
 <div id="swagger-ui">
 </div>
 
+<script type="application/json" id="swagger-settings">
+    {{ swagger_settings | safe }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui@5.10.0/dist/swagger-ui-bundle.js"
+        integrity="sha256-i050FsZ0MSwm3mVMv7IhpfCdK90RKaXPS/EmiWxv8vc=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui@5.10.0/dist/swagger-ui-standalone-preset.js"
+        integrity="sha256-IGoJVXW7MRyeZOsKceWVePAShfVpJhnYhDhOQp+Yi38=" crossorigin="anonymous"></script>
+
 <script>
+
     const button = document.createElement('button');
     button.id = 'dark-mode-toggle';
     button.innerHTML = `{{ active_icon | safe }}`;
@@ -69,33 +79,6 @@
             button.innerHTML = `{{ icons.light_mode | safe }}`;
         }
     };
-
-    const observer = new MutationObserver(async (mutations) => {
-        for (const mutation of mutations) {
-            if (mutation.addedNodes.length) {
-                const titleSec = document.querySelector('h2.title');
-                if (titleSec) {
-                    titleSec.appendChild(button);
-                    observer.disconnect();
-                }
-            }
-        }
-    });
-
-    observer.observe(document, {childList: true, subtree: true});
-</script>
-
-
-<script type="application/json" id="swagger-settings">
-    {{ swagger_settings | safe }}
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/swagger-ui@5.10.0/dist/swagger-ui-bundle.js"
-        integrity="sha256-i050FsZ0MSwm3mVMv7IhpfCdK90RKaXPS/EmiWxv8vc=" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/swagger-ui@5.10.0/dist/swagger-ui-standalone-preset.js"
-        integrity="sha256-IGoJVXW7MRyeZOsKceWVePAShfVpJhnYhDhOQp+Yi38=" crossorigin="anonymous"></script>
-
-<script>
 
     const configJson = document.getElementById("swagger-settings").textContent;
     const configObject = JSON.parse(configJson);
@@ -114,6 +97,19 @@
 
     const ui = SwaggerUIBundle(configObject);
 
+    const observer = new MutationObserver(async (mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.addedNodes.length) {
+                const titleSec = document.querySelector('h2.title');
+                if (titleSec) {
+                    titleSec.appendChild(button);
+                    observer.disconnect();
+                }
+            }
+        }
+    });
+
+    observer.observe(document, {childList: true, subtree: true});
 </script>
 </body>
 </html>
