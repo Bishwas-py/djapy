@@ -14,12 +14,13 @@ class Contact(TypedDict):
 
 
 class Info:
-    def __init__(self, title: str, version: str, description: str):
+    def __init__(self, title: str, version: str, description: str, site_name="Djapy"):
         self.title = title
         self.version = version
         self.description = description
         self.license = None
         self.contact = None
+        self.site_name = site_name
 
     def dict(self):
         return {

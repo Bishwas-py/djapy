@@ -87,11 +87,13 @@ class OpenAPI:
             passed_base_url: Optional[list[PassedBaseUrl]] = None,
             contact: Contact = None,
             license_: License = None,
+            site_name="Djapy",
     ):
         self.info.title = title
         self.info.description = description
         self.info.version = version
         self.info.contact = contact
+        self.info.site_name = site_name
         self.info.license = license_
         self.tags.extend(tags_info or [])
         self.security_schema = security_schema or {}
@@ -102,8 +104,7 @@ class OpenAPI:
         openapi_dict = self.dict(request)
         return JsonResponse(openapi_dict)
 
-    @staticmethod
-    def render_swagger_ui(request):
+    def render_swagger_ui(self, request):
         openapi_json_url = reverse('djapy:openapi')
         absolute_openapi_json_url = request.build_absolute_uri(openapi_json_url)
         is_dark_mode = request.COOKIES.get("dark_mode", "false") == "true"
@@ -113,6 +114,10 @@ class OpenAPI:
                 "layout": "BaseLayout",
                 "deepLinking": "true",
             }),
+            "api": {
+                "title": self.info.title,
+                "site_name": self.info.site_name,
+            },
             "dark_mode": is_dark_mode,
             "icons": icons,
             "active_icon": icons["light_mode" if is_dark_mode else "dark_mode"],
