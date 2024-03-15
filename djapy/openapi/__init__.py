@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.urls import URLPattern, get_resolver, path, reverse
 
 from .defaults import ABS_TPL_PATH
+from .icons import icons
 from .info import Info, Contact, License
 from .openapi_path import OpenAPI_Path
 
@@ -105,18 +106,22 @@ class OpenAPI:
     def render_swagger_ui(request):
         openapi_json_url = reverse('djapy:openapi')
         absolute_openapi_json_url = request.build_absolute_uri(openapi_json_url)
+        is_dark_mode = request.COOKIES.get("dark_mode", "false") == "true"
         return _render_cdn_template(request, ABS_TPL_PATH / 'swagger_cdn.html', {
             "swagger_settings": json.dumps({
                 "url": absolute_openapi_json_url,
                 "layout": "BaseLayout",
                 "deepLinking": "true",
-            })
+            }),
+            "dark_mode": is_dark_mode,
+            "icons": icons,
+            "active_icon": icons["light_mode" if is_dark_mode else "dark_mode"]
         })
 
     def get_urls(self):
         return [
             path('openapi.json', self.get_openapi, name='openapi'),
-            path('', self.render_swagger_ui, name='swagger'),
+            path('', self.render_swagger_ui, name='swagger')
         ]
 
     @property
