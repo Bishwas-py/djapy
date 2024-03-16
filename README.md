@@ -14,6 +14,16 @@ def get_user(request) -> {200: UserSchema, 404: str}:
 
 > It's that simple!
 
+## Features
+
+- Complete input/output data flow control
+- Extensible and extremely customizable auth; SessionAuth provided in-built
+- Hyper type checking, pydantic-based, and swagger integrated
+- CursorPagination, OffsetLimitPagination and PageNumber out of the box; with ability to create custom pagination
+- Validation, validation messages, with complete control over each validation process
+- Customizable error handling, and error messages
+- Completely Django friendly, and can be used with any Django project
+
 ## Installation
 
 Djapy is available on PyPI, and can be installed with `pip`:

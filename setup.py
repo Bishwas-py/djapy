@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 setup(
     name="djapy",
-    version="0.1.93",
-    description="Do not quit using Django just because of Django Rest Framework, Django is JSOMe",
+    version="0.1.94",
+    description="Write powerful APIs with Django and Pydantic; I/O validation, Swagger/OpenAPI docs, and more.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Bishwas-py/djapy",
