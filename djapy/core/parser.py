@@ -102,7 +102,7 @@ class ResponseDataParser:
         )
 
         # Deconstruct the object data
-        destructured_object_data = validated_obj.dict()
+        destructured_object_data = validated_obj.model_dump(mode="json")
 
         return destructured_object_data.get(JSON_OUTPUT_PARSE_NAME)
 
