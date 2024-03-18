@@ -33,7 +33,7 @@ class OpenAPI_Path:
 
     def set_security(self):
         self.security.append(self.view_func.auth_mechanism.app_schema())
-        self.export_security_schemes.update(self.view_func.auth_mechanism.schema())
+        self.export_security_schemes.update(self.view_func.auth_mechanism.schema())  # AuthMechanism.schema
 
     def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
         self.parent_url_pattern = parent_url_pattern or []
