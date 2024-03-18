@@ -67,9 +67,9 @@ class OpenAPI_Path:
 
     def set_request_body(self):
         if self.view_func.single_data_schema:
-            prepared_schema = self.view_func.single_data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
+            prepared_schema = self.view_func.single_data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
         else:
-            prepared_schema = self.view_func.data_schema.schema(ref_template=REF_MODAL_TEMPLATE)
+            prepared_schema = self.view_func.data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
         content = prepared_schema if prepared_schema["properties"] else {}
@@ -149,7 +149,7 @@ class OpenAPI_Path:
                 __base__=Schema
             )
 
-            prepared_schema = response_model.schema(ref_template=REF_MODAL_TEMPLATE)
+            prepared_schema = response_model.model_json_schema(ref_template=REF_MODAL_TEMPLATE, mode='serialization')
             if "$defs" in prepared_schema:
                 self.export_components.update(prepared_schema.pop("$defs"))
             content = prepared_schema['properties']['response']
