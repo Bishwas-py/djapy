@@ -43,7 +43,14 @@ class OffsetLimitPagination(BasePagination):
             limit = input_data['limit']
 
             if len(queryset) == 0 or offset > len(queryset):
-                return []
+                return {
+                    "items": [],
+                    "offset": offset,
+                    "limit": limit,
+                    "has_next": False,
+                    "has_previous": False,
+                    "total_pages": 0,
+                }
 
             queryset_subset = queryset[offset:offset + limit]
 
