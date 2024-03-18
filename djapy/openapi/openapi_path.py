@@ -92,7 +92,7 @@ class OpenAPI_Path:
         self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
-        prepared_query_schema = self.view_func.query_schema.schema(
+        prepared_query_schema = self.view_func.query_schema.model_json_schema(
             ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
