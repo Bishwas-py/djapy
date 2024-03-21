@@ -17,8 +17,7 @@ class UHandleErrorMiddleware:
         response = self.get_response(request)
         user_agent = request.headers.get('User-Agent')
         is_browser = 'Mozilla/' in user_agent
-
-        if response.status_code >= 400 and not isinstance(response, JsonResponse) and not is_browser:
+        if response.status_code >= 400 and response.headers['Content-Type'] != 'application/json' and not is_browser:
             error_response = {
                 "message": "An error occurred while processing your request.",
                 "reason": response.reason_phrase,
