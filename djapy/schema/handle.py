@@ -1,7 +1,10 @@
+__all__ = ['payload', 'uni_schema', 'StatusCodes']
+
 from http.client import responses
 from typing import Type, TypedDict, Literal
 
-from djapy import Schema
+from .schema import Schema
+from djapy.core.typing_utils import G_TYPE
 
 
 class StatusCodes:
@@ -27,4 +30,16 @@ class ReSchema:
         return self.__call__(schema, StatusCodes.server_error_5xx)
 
 
+class Payload:
+    unquery_type: G_TYPE | None = None
+
+    def __call__(self, type_: G_TYPE) -> G_TYPE:
+        """
+        Enforces any type to be received as a payload.
+        """
+        self.unquery_type = type_
+        return self
+
+
+payload = Payload()
 uni_schema = ReSchema()

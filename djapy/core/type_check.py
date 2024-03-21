@@ -5,7 +5,8 @@ from typing import Union, get_args, get_origin, Literal, List, Optional, Annotat
 
 from django.http import HttpResponse, HttpRequest, HttpResponseBase
 
-from ..schema import Schema, Payload
+from ..schema import Schema
+from ..schema.handle import Payload
 
 BASIC_TYPES = {
     "str": "string",
