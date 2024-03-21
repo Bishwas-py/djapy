@@ -2,7 +2,7 @@ __all__ = ['Schema', 'SourceAble']
 
 import typing
 from typing import Any
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ConfigDict
 from pydantic_core.core_schema import ValidationInfo
 
 
@@ -10,10 +10,8 @@ class Schema(BaseModel):
     """
     Enhance to automatically detect many-to-many fields for serialization.
     """
-
-    class Config:
-        arbitrary_types_allowed = True
-        from_attributes = True
+    model_config = ConfigDict(validate_default=True, validate_assignment=True, from_attributes=True,
+                              arbitrary_types_allowed=True)
 
     class Info:
         description: dict = {}
