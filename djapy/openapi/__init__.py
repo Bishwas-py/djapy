@@ -56,11 +56,15 @@ class OpenAPI:
         if parent_url_patterns is None:
             parent_url_patterns = []
         for url_pattern in url_patterns:
-            if self.is_djapy_openapi(url_pattern.callback):
-                openapi_path_ = OpenAPI_Path(url_pattern, parent_url_patterns)
-                self.set_path_and_exports(openapi_path_)
-            if hasattr(url_pattern, 'url_patterns'):
-                self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
+            try:
+                if self.is_djapy_openapi(url_pattern.callback):
+                    openapi_path_ = OpenAPI_Path(url_pattern, parent_url_patterns)
+                    self.set_path_and_exports(openapi_path_)
+                if hasattr(url_pattern, 'url_patterns'):
+                    self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
+            except Exception as e:
+                print(f"[x] Error in generating paths for view: `{url_pattern.callback.__name__}`;")
+                raise e
 
     def dict(self, request: HttpRequest):
         self.generate_paths(self.resolved_url.url_patterns)
