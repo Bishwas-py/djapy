@@ -139,8 +139,9 @@ class OpenAPI_Path:
     def set_responses(self):
         for status, schema in self.url_pattern.callback.schema.items():
             description = ""
-            if schema_type(schema) and schema.Info.description:
-                description = schema.Info.description.get(status, "Unknown")
+            if schema_type(schema):
+                if isinstance(schema, Schema):
+                    description = schema.Info.description.get(status, "Unknown")
             if not description:
                 description = self.make_description_from_status(status)
             response_model = create_model(
