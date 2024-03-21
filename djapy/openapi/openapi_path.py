@@ -140,7 +140,7 @@ class OpenAPI_Path:
         for status, schema in self.url_pattern.callback.schema.items():
             description = ""
             if schema_type(schema):
-                if isinstance(schema, Schema):
+                if isinstance(schema, Schema) and schema.Info.description:
                     description = schema.Info.description.get(status, "Unknown")
             if not description:
                 description = self.make_description_from_status(status)
