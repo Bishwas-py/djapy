@@ -13,6 +13,10 @@ class StatusCodes:
         self.error_4xx = {code for code in range(400, 500) if code in responses}
         self.server_error_5xx = {code for code in range(500, 600) if code in responses}
 
+    @property
+    def all(self):
+        return {code for code in self.success_2xx | self.error_4xx | self.server_error_5xx}
+
 
 class ReSchema:
     """
@@ -23,10 +27,10 @@ class ReSchema:
                  status_set=None):
         """
         :param schema: The schema to be used.
-        :param status_set: The status codes to be used. Default is None. If None, all status codes are used `(1xx, 2xx, 3xx, 4xx, 5xx)`.
+        :param status_set: The status codes to be used. Default is None. If None, all status codes are used `(2xx, 4xx, 5xx)`.
         """
         if status_set is None:
-            status_set = {code for code in responses}
+            status_set = {code for code in status_codes.all}
         return {code: schema for code in status_set}
 
     def success_2xx(self, schema):
