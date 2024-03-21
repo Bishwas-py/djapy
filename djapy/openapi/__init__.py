@@ -63,7 +63,8 @@ class OpenAPI:
                 if hasattr(url_pattern, 'url_patterns'):
                     self.generate_paths(url_pattern.url_patterns, parent_url_patterns + [url_pattern])
             except Exception as e:
-                print(f"[x] Error in generating paths for view: `{url_pattern.callback.__name__}`;")
+                if url_pattern.callback:
+                    print(f"[x] Error in generating paths for view: `{url_pattern.callback.__name__}`;")
                 raise e
 
     def dict(self, request: HttpRequest):
