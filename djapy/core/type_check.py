@@ -3,9 +3,9 @@ import types
 from inspect import Parameter
 from typing import Union, get_args, get_origin, Literal, List, Optional, Annotated
 
-from django.http import HttpResponse, HttpRequest, HttpResponseBase
+from django.http import HttpResponseBase
+from pydantic import BaseModel
 
-from ..schema import Schema
 from ..schema.handle import Payload
 
 BASIC_TYPES = {
@@ -102,7 +102,7 @@ def schema_type(param: Parameter | object):
         type_object_ = param.annotation
     else:
         type_object_ = param
-    if hasattr(type_object_, "Config") and issubclass(type_object_, Schema) or isinstance(type_object_, Schema):
+    if hasattr(type_object_, "Config") and issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel):
         return type_object_
     return None
 
