@@ -87,6 +87,13 @@
         SwaggerUIBundle.SwaggerUIStandalonePreset
     ];
 
+    {% if add_csrf %}
+        configObject.requestInterceptor = (req) => {
+            req.headers['X-CSRFToken'] = "{{csrf_token}}";
+            return req;
+        };
+    {% endif %}
+
     const ui = SwaggerUIBundle(configObject);
 
     const observer = new MutationObserver(async (mutations) => {
