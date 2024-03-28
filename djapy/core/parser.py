@@ -28,17 +28,18 @@ class RequestDataParser:
         Parse the request data and validate it with the data model.
         """
         self.set_request_data()
+        context = {"request": self.request}
         if self.single_data_schema:
-            validated_obj = self.single_data_schema.validate(self.data)
+            validated_obj = self.single_data_schema.model_validate(self.data, context=context)
             destructured_data_dict = {self.single_data_key: validated_obj}
         else:
-            data = self.data_schema.model_validate(self.data)
+            data = self.data_schema.model_validate(self.data, context=context)
             destructured_data_dict = data.__dict__
 
         query_data = self.query_schema.model_validate({
             **self.query_data,
             **self.line_kwargs
-        })
+        }, context=context)
         destructured_object_data = {
             **query_data.__dict__,
             **destructured_data_dict
