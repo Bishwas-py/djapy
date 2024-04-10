@@ -1,4 +1,4 @@
-__all__ = ['Schema', 'SourceAble', 'QueryList']
+__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl']
 
 import typing
 from typing import Any, Annotated, List, Union
