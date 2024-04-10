@@ -1,7 +1,10 @@
 __all__ = ['Schema', 'SourceAble', 'QueryList']
 
 import typing
-from typing import Any, Annotated, List
+from typing import Any, Annotated, List, Union
+
+from django.db.models import QuerySet
+from django.db.models.fields.files import ImageFieldFile
 from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator
 from pydantic_core.core_schema import ValidationInfo
 
@@ -38,7 +41,7 @@ class SourceAble(BaseModel):
         return obj
 
 
-def query_list_validator(value):
+def query_list_validator(value: QuerySet):
     """
     Validator to ensure the Django QuerySet is converted to an iterable.
     """
@@ -46,3 +49,15 @@ def query_list_validator(value):
 
 
 QueryList = Annotated[List[G_TYPE], BeforeValidator(query_list_validator)]
+
+
+def image_field_file_validator(value: ImageFieldFile):
+    """
+    Validator to ensure the ImageFieldFile is converted to a URL.
+    """
+    if value:
+        return value.url
+    return None
+
+
+ImageUrl = Annotated[Union[None, str], BeforeValidator(image_field_file_validator)]
