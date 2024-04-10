@@ -1,9 +1,11 @@
-__all__ = ['Schema', 'SourceAble']
+__all__ = ['Schema', 'SourceAble', 'QueryList']
 
 import typing
-from typing import Any
-from pydantic import BaseModel, model_validator, ConfigDict
+from typing import Any, Annotated, List
+from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator
 from pydantic_core.core_schema import ValidationInfo
+
+from djapy.core.typing_utils import G_TYPE
 
 
 class Schema(BaseModel):
@@ -34,3 +36,13 @@ class SourceAble(BaseModel):
         obj._context = validation_info.context
 
         return obj
+
+
+def query_list_validator(value):
+    """
+    Validator to ensure the Django QuerySet is converted to an iterable.
+    """
+    return value.all()
+
+
+QueryList = Annotated[List[G_TYPE], BeforeValidator(query_list_validator)]
