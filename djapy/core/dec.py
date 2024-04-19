@@ -238,8 +238,14 @@ def djapify(view_func: Callable = None,
                 status_code, response_data = response_from_view_func \
                     if isinstance(response_from_view_func, tuple) else (200, response_from_view_func)
 
-                if isinstance(response_data, schema_dict_returned):
-                    return response_data
+                if isinstance(response_data, schema_dict_returned.get(status_code)):
+                    parsed_data = response_data.model_dump(mode="json", by_alias=True)
+                else:
+                    parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
+                    parsed_data = parser.parse_response_data()
+
+                response.status_code = status_code
+                response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
 
                 parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
                 parsed_data = parser.parse_response_data()
