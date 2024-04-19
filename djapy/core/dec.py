@@ -238,6 +238,9 @@ def djapify(view_func: Callable = None,
                 status_code, response_data = response_from_view_func \
                     if isinstance(response_from_view_func, tuple) else (200, response_from_view_func)
 
+                if isinstance(response_data, schema_dict_returned):
+                    return response_data
+
                 parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
                 parsed_data = parser.parse_response_data()
 
