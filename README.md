@@ -45,3 +45,9 @@ django-admin startproject <project_name>
 > Fork project: [bishwas-py/djapy](https://github.com/Bishwas-py/djapy).
 
 More on this in the [Usage](https://djapy.io/usage/) section.
+
+## Contribution Guidelines
+
+We welcome all contributions to Djapy, and have a set of guidelines to ensure that the process is as smooth as possible.
+
+Please read the [Contribution Guidelines](https://djapy.io/contribution/) before contributing.
