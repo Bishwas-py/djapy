@@ -10,6 +10,8 @@ from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME,
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
+from ..schema.schema import json_modal_schema, get_json
+
 
 class RequestDataParser:
     def __init__(self, request: HttpRequest, view_func, view_kwargs):
@@ -55,17 +57,7 @@ class RequestDataParser:
         return destructured_object_data
 
     def get_json_data(self):
-        request_body = self.request.body.decode()
-        json_modal_schema = create_model(
-            REQUEST_INPUT_DATA_SCHEMA_NAME,
-            **{JSON_BODY_PARSE_NAME: (Json, ...)},
-            __base__=Schema
-        )
-        validated_obj = json_modal_schema.model_validate({
-            JSON_BODY_PARSE_NAME: request_body
-        })
-        json_data = validated_obj.dict().get(JSON_BODY_PARSE_NAME)
-        return json_data
+        return get_json(self.request.body.decode())
 
     def set_request_data(self):
         """

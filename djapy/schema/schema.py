@@ -1,4 +1,4 @@
-__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl']
+__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl', 'get_json']
 
 import inspect
 import json
@@ -7,12 +7,13 @@ from typing import Any, Annotated, List, Union, get_origin, ClassVar
 
 from django.db.models import QuerySet
 from django.db.models.fields.files import ImageFieldFile
-from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator
+from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator, create_model, Json
 from pydantic.functional_validators import field_validator
 
 from pydantic_core.core_schema import ValidationInfo
 
 from djapy.core import type_check
+from djapy.core.labels import REQUEST_INPUT_DATA_SCHEMA_NAME, JSON_BODY_PARSE_NAME
 from djapy.core.typing_utils import G_TYPE
 
 
@@ -50,6 +51,19 @@ class Schema(BaseModel):
         return not cls.__annotations__
 
 
+json_modal_schema = create_model(
+    REQUEST_INPUT_DATA_SCHEMA_NAME,
+    **{JSON_BODY_PARSE_NAME: (Json, ...)},
+    __base__=Schema
+)
+
+
+def get_json(to_jsonify_text: str):
+    return json_modal_schema.model_validate({
+        JSON_BODY_PARSE_NAME: to_jsonify_text
+    }).dict().get(JSON_BODY_PARSE_NAME)
+
+
 class QueryMapperSchema(Schema):
     @field_validator("*", mode="before")
     def __field_validator__(cls, value: Any, info: ValidationInfo):
@@ -61,7 +75,7 @@ class QueryMapperSchema(Schema):
         if inspect.isclass(field_type.annotation) and issubclass(field_type.annotation, Schema):
             new_dict = {}
             for i, v in value.items():
-                new_dict[i] = [json.loads(q) for q in v]
+                new_dict[i] = [get_json(q) for q in v]
             return new_dict
         return value
 
