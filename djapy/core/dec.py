@@ -142,7 +142,8 @@ def get_schemas(view_func: callable, extra_query_dict: Dict = None):
                 raise TypeError(
                     f"\n{func_path_and_line(view_func)}"
                     f"Only one content type is allowed in a view function: "
-                    f"`{view_func.__name__}`; `{param.name}: {param.annotation}`."
+                    f"`{view_func.__name__}`; `{param.name}: {param.annotation}`. "
+                    f"\nIt should be either form or data schema."
                 )
 
     schema_dict["query"] = create_model(
