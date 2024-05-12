@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import json
+import types
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
@@ -16,13 +17,15 @@ from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE,
     DEFAULT_MESSAGE_ERROR
 from djapy.pagination.base_pagination import BasePagination
 from .parser import ResponseDataParser, RequestDataParser, get_response_schema_dict
-from .labels import REQUEST_INPUT_SCHEMA_NAME
+from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, REQUEST_INPUT_QUERY_SCHEMA_NAME, REQUEST_INPUT_FORM_SCHEMA_NAME, \
+    REQUEST_INPUT_SCHEMA_NAME
 import logging
 
 __all__ = ['djapify']
 
 from .response import create_json_from_validation_error
 from .type_check import is_param_query_type, schema_type, is_data_type
+from ..schema.schema import Form, QueryMapperSchema
 
 MAX_HANDLER_COUNT = 1
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
@@ -108,6 +111,9 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
     """
     query_schema_dict = {}
     data_schema_dict = {}
+    form_schema_dict = {}
+    schema_dict = {}
+
     if not extra_query_dict:
         extra_query_dict = {}
     for param in required_params:
@@ -118,22 +124,32 @@ def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict
         if is_query:
             query_schema_dict[param.name] = get_passable_tuple(param)
         elif data_type := is_data_type(param):
-            data_schema_dict[param.name] = get_passable_tuple(param, data_type)
+            annotation, default = get_passable_tuple(param, data_type)
+            if annotation.content_type == "application/x-www-form-urlencoded":
+                form_schema_dict[param.name] = (annotation, default)
+            elif annotation.content_type == "application/json":
+                data_schema_dict[param.name] = (annotation, default)
 
-    query_model = create_model(
-        REQUEST_INPUT_SCHEMA_NAME,
+    schema_dict["query"] = create_model(
+        REQUEST_INPUT_QUERY_SCHEMA_NAME,
         **query_schema_dict,
         **extra_query_dict,
-        __base__=Schema
+        __base__=QueryMapperSchema
     )
 
-    data_model = create_model(
-        REQUEST_INPUT_SCHEMA_NAME,
+    schema_dict["data"] = create_model(
+        REQUEST_INPUT_DATA_SCHEMA_NAME,
         **data_schema_dict,
         __base__=Schema
     )
 
-    return query_model, data_model
+    schema_dict["form"] = create_model(
+        REQUEST_INPUT_FORM_SCHEMA_NAME,
+        **form_schema_dict,
+        __base__=Form
+    )
+
+    return schema_dict
 
 
 def get_auth(view_func: Callable,
@@ -174,17 +190,6 @@ def get_in_response_param(required_params: List[inspect.Parameter]):
         if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
             return param
     return None
-
-
-def get_single_data_schema(data_schema):
-    print(data_schema.__annotations__, len(data_schema.__annotations__))
-    if len(data_schema.__annotations__) == 1:
-        single_data_schema_obj = list(data_schema.__annotations__.values())[0]
-        if _schema_type := schema_type(single_data_schema_obj):
-            print("_schema_type:  ", _schema_type)
-            single_data_key = list(data_schema.__annotations__.keys())[0]
-            return single_data_key, _schema_type
-    return None, None
 
 
 def djapify(view_func: Callable = None,
@@ -273,15 +278,15 @@ def djapify(view_func: Callable = None,
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
+        _wrapped_view.input_schema = view_func.input_schema = get_schemas(view_func.required_params, extra_query_dict)
+        print(_wrapped_view.schema)
+        # query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
+        # _wrapped_view.query_schema = view_func.query_schema = query_schema
+        # _wrapped_view.data_schema = view_func.data_schema = data_schema
 
-        query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
-        _wrapped_view.query_schema = view_func.query_schema = query_schema
-        _wrapped_view.data_schema = view_func.data_schema = data_schema
-
-        single_data_key, single_data_schema = get_single_data_schema(data_schema)
-        print("single_data_schema", single_data_schema)
-        _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
-        _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
+        # single_data_key, single_data_schema = get_single_data_schema(data_schema)
+        # _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
+        # _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
 
         _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 

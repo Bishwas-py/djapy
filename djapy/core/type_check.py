@@ -103,11 +103,7 @@ def schema_type(param: Parameter | object):
         type_object_ = param.annotation
     else:
         type_object_ = param
-    if (
-            inspect.isclass(type_object_) and
-            (issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel)) or
-            get_origin(type_object_) is Annotated
-    ):
+    if inspect.isclass(type_object_) and (issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel)):
         return type_object_
     return None
 

@@ -66,18 +66,22 @@ class OpenAPI_Path:
         self.set_request_body()
 
     def set_request_body(self):
-        if self.view_func.single_data_schema:
-            prepared_schema = self.view_func.single_data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-        else:
-            prepared_schema = self.view_func.data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-        print("prepared_schema:  ", prepared_schema)
-        if "$defs" in prepared_schema:
-            self.export_components.update(prepared_schema.pop("$defs"))
-        content = prepared_schema if prepared_schema["properties"] else {}
-        if content:
-            self.request_body = {
-                "content": {"application/json": {"schema": content}}
-            }
+        for schema in [self.view_func.input_schema["data"], self.view_func.input_schema["form"]]:
+            if single_schema := schema.single():
+                schema = single_schema[1]
+            prepared_schema = schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+            if "$defs" in prepared_schema:
+                self.export_components.update(prepared_schema.pop("$defs"))
+            content = prepared_schema if prepared_schema["properties"] else {}
+            if content:
+                if not self.request_body.get("content"):
+                    self.request_body["content"] = {schema.content_type: {"schema": content}}
+                if not self.request_body["content"].get(schema.content_type):
+                    self.request_body["content"][schema.content_type] = {"schema": content}
+                if not self.request_body["content"][schema.content_type].get("schema"):
+                    self.request_body["content"][schema.content_type]["schema"] = content
+
+                self.request_body["content"][schema.content_type]["schema"] = content
 
     @staticmethod
     def make_parameters(name, schema, required, in_="query"):
@@ -93,8 +97,10 @@ class OpenAPI_Path:
         self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
-        prepared_query_schema = self.view_func.query_schema.model_json_schema(
-            ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
+        print("self.view_func.schema:    ", self.view_func.schema)
+        prepared_query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+        # possibly, this should be a property, no refs
+
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
                 if name in self.parameters_keys:

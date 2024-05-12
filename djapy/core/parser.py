@@ -5,7 +5,8 @@ from django.http import HttpRequest
 
 from djapy.schema import Schema
 from .response import create_validation_error
-from .labels import REQUEST_INPUT_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON_OUTPUT_PARSE_NAME, JSON_BODY_PARSE_NAME
+from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON_OUTPUT_PARSE_NAME, \
+    JSON_BODY_PARSE_NAME
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
@@ -13,38 +14,58 @@ __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict'
 class RequestDataParser:
     def __init__(self, request: HttpRequest, view_func, view_kwargs):
         self.view_func = view_func
-        self.query_schema = view_func.query_schema
-        self.data_schema = view_func.data_schema
-        self.single_data_schema = view_func.single_data_schema
-        self.single_data_key = view_func.single_data_key
         self.view_kwargs = view_kwargs
         self.request = request
         self.query_data = {}
         self.line_kwargs = {}
         self.data = {}
+        self.form = {}
+        self.files = {}
 
     def parse_request_data(self):
         """
         Parse the request data and validate it with the data model.
         """
-        self.set_request_data()
         context = {"request": self.request}
-        if self.single_data_schema:
-            validated_obj = self.single_data_schema.model_validate(self.data, context=context)
-            destructured_data_dict = {self.single_data_key: validated_obj}
-        else:
-            data = self.data_schema.model_validate(self.data, context=context)
-            destructured_data_dict = data.__dict__
+        data_schema = self.view_func.input_schema["data"]
+        form_schema = self.view_func.input_schema["form"]
 
-        query_data = self.query_schema.model_validate({
-            **self.query_data,
-            **self.line_kwargs
+        if not data_schema.is_empty():
+            data = data_schema.validate_via_request(self.get_json_data(), context=context)
+            data = data.__dict__
+        else:
+            data = {}
+
+        if not form_schema.is_empty():
+            form = form_schema.validate_via_request(dict(self.request.POST), context=context)
+            form = form.__dict__
+        else:
+            form = {}
+
+        query_data = self.view_func.input_schema["query"].model_validate({
+            **self.view_kwargs,
+            **dict(self.request.GET)
         }, context=context)
+
         destructured_object_data = {
             **query_data.__dict__,
-            **destructured_data_dict
+            **data,
+            **form,
         }
         return destructured_object_data
+
+    def get_json_data(self):
+        request_body = self.request.body.decode()
+        json_modal_schema = create_model(
+            REQUEST_INPUT_DATA_SCHEMA_NAME,
+            **{JSON_BODY_PARSE_NAME: (Json, ...)},
+            __base__=Schema
+        )
+        validated_obj = json_modal_schema.model_validate({
+            JSON_BODY_PARSE_NAME: request_body
+        })
+        json_data = validated_obj.dict().get(JSON_BODY_PARSE_NAME)
+        return json_data
 
     def set_request_data(self):
         """
@@ -56,17 +77,7 @@ class RequestDataParser:
 
         if self.request.method != 'GET':
             if self.request.POST:
-                self.data.update(dict(self.request.POST))
-            elif request_body := self.request.body.decode():
-                json_modal_schema = create_model(
-                    REQUEST_INPUT_SCHEMA_NAME,
-                    **{JSON_BODY_PARSE_NAME: (Json, ...)},
-                    __base__=BaseModel
-                )
-                validated_obj = json_modal_schema.model_validate({
-                    JSON_BODY_PARSE_NAME: request_body
-                })
-                self.data.update(validated_obj.dict().get(JSON_BODY_PARSE_NAME))
+                self.form.update(dict(self.request.POST))
 
 
 class ResponseDataParser:
