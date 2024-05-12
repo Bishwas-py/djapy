@@ -74,8 +74,8 @@ class QueryMapperSchema(Schema):
             return value[0]
         if inspect.isclass(field_type.annotation) and issubclass(field_type.annotation, Schema):
             new_dict = {}
-            for i, v in value.items():
-                new_dict[i] = [get_json(q) for q in v]
+            for key, new_values in value.items():
+                new_dict[key] = [get_json(new_new) for new_new in new_values]
             return new_dict
         return value
 
