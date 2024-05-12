@@ -7,7 +7,7 @@ from typing import Any, Annotated, List, Union, TYPE_CHECKING, get_origin, get_t
 from django.db.models import QuerySet
 from django.db.models.fields.files import ImageFieldFile
 from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator, WrapValidator
-from pydantic.functional_validators import ModelWrapValidatorHandler
+from pydantic.functional_validators import ModelWrapValidatorHandler, field_validator
 
 from pydantic_core.core_schema import ValidationInfo
 
@@ -26,6 +26,15 @@ class Schema(BaseModel):
 
     class Info:
         description: dict = {}
+
+    @field_validator("*", mode="before")
+    def __field_validator__(cls, value: Any, info: ValidationInfo):
+        field_type = cls.model_fields.get(info.field_name)
+        if get_origin(field_type.annotation) is list and typing.get_args(field_type.annotation) != ():
+            return value
+        if isinstance(value, list):
+            return value[0]
+        return value
 
 
 class SourceAble(BaseModel):
@@ -54,19 +63,6 @@ def query_list_validator(value: QuerySet):
     return value.all()
 
 
-def xfield_validator(value, xyz):
-    print("HEY")
-    print(value, xyz)
-    field_type = cls.model_fields.get(info.field_name)
-    origin = typing.get_args(field_type.annotation)
-    if origin is list:
-        return value
-    if isinstance(value, list):
-        return value[0]
-    return value
-
-
-Form = Annotated[G_TYPE, BeforeValidator(xfield_validator)]
 QueryList = Annotated[List[G_TYPE], BeforeValidator(query_list_validator)]
 
 

@@ -14,7 +14,8 @@ BASIC_TYPES = {
     "float": "number",
     "bool": "boolean",
     "datetime": "string",
-    "uuid": "uuid"
+    "uuid": "uuid",
+    "list": "array",
 }
 
 BASIC_URL_QUERY_TYPES = {
@@ -102,7 +103,11 @@ def schema_type(param: Parameter | object):
         type_object_ = param.annotation
     else:
         type_object_ = param
-    if hasattr(type_object_, "Config") and issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel):
+    if (
+            inspect.isclass(type_object_) and
+            (issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel)) or
+            get_origin(type_object_) is Annotated
+    ):
         return type_object_
     return None
 
@@ -118,18 +123,6 @@ def is_data_type(param: Parameter):
     """
     Checks if the parameter is a data type, or payload[str, int, float, bool]
     """
-    print("param.annotation", param.annotation)
-    if isinstance(param.annotation, Payload):
-        return param.annotation.unquery_type
-    print("heyx")
     if is_django_type(param):
         return None
-    print("hey2")
-    if inspect.isclass(param.annotation):
-        return param.annotation
-    print("hey3")
-    print("param.annotation", param.annotation)
-    if hasattr(param.annotation, "__origin__"):
-        return param.annotation
-    print("hey4")
-    return None
+    return param.annotation

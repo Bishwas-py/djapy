@@ -70,6 +70,7 @@ class OpenAPI_Path:
             prepared_schema = self.view_func.single_data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
         else:
             prepared_schema = self.view_func.data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+        print("prepared_schema:  ", prepared_schema)
         if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
         content = prepared_schema if prepared_schema["properties"] else {}
