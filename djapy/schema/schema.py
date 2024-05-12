@@ -65,6 +65,8 @@ def get_json(to_jsonify_text: str):
 
 
 class QueryMapperSchema(Schema):
+    content_type = "_query_mapper"
+
     @field_validator("*", mode="before")
     def __field_validator__(cls, value: Any, info: ValidationInfo):
         field_type = cls.model_fields.get(info.field_name)
