@@ -111,29 +111,25 @@ def is_django_type(param: Parameter):
     """
     Checks if the parameter is a django type, or payload[str, int, float, bool]
     """
-    if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
-        return True
-    return False
-
-
-def is_schemable_type(param: Parameter):
-    """
-    Checks if the parameter is a schemable type, or payload[str, int, float, bool]
-    """
-    if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
-        return True
-    return False
+    return inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase)
 
 
 def is_data_type(param: Parameter):
     """
     Checks if the parameter is a data type, or payload[str, int, float, bool]
     """
+    print("param.annotation", param.annotation)
     if isinstance(param.annotation, Payload):
         return param.annotation.unquery_type
+    print("heyx")
     if is_django_type(param):
         return None
-    if is_schemable_type(param):
+    print("hey2")
+    if inspect.isclass(param.annotation):
         return param.annotation
-
+    print("hey3")
+    print("param.annotation", param.annotation)
+    if hasattr(param.annotation, "__origin__"):
+        return param.annotation
+    print("hey4")
     return None

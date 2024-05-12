@@ -1,14 +1,20 @@
 __all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl']
 
+import inspect
 import typing
-from typing import Any, Annotated, List, Union
+from typing import Any, Annotated, List, Union, TYPE_CHECKING, get_origin, get_type_hints
 
 from django.db.models import QuerySet
 from django.db.models.fields.files import ImageFieldFile
-from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator
+from pydantic import BaseModel, model_validator, ConfigDict, BeforeValidator, WrapValidator
+from pydantic.functional_validators import ModelWrapValidatorHandler
+
 from pydantic_core.core_schema import ValidationInfo
 
 from djapy.core.typing_utils import G_TYPE
+
+if TYPE_CHECKING:
+    from pydantic_core.core_schema import ValidatorCallable
 
 
 class Schema(BaseModel):
@@ -48,6 +54,19 @@ def query_list_validator(value: QuerySet):
     return value.all()
 
 
+def xfield_validator(value, xyz):
+    print("HEY")
+    print(value, xyz)
+    field_type = cls.model_fields.get(info.field_name)
+    origin = typing.get_args(field_type.annotation)
+    if origin is list:
+        return value
+    if isinstance(value, list):
+        return value[0]
+    return value
+
+
+Form = Annotated[G_TYPE, BeforeValidator(xfield_validator)]
 QueryList = Annotated[List[G_TYPE], BeforeValidator(query_list_validator)]
 
 

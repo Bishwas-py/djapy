@@ -52,11 +52,11 @@ class RequestDataParser:
         """
         if self.view_kwargs:
             self.line_kwargs.update(self.view_kwargs)
-        self.query_data.update(self.request.GET.dict())
+        self.query_data.update(dict(self.request.GET))
 
         if self.request.method != 'GET':
             if self.request.POST:
-                self.data.update(self.request.POST.dict())
+                self.data.update(dict(self.request.POST))
             elif request_body := self.request.body.decode():
                 json_modal_schema = create_model(
                     REQUEST_INPUT_SCHEMA_NAME,

@@ -165,7 +165,7 @@ class OpenAPI_Path:
             method.lower(): {
                 "summary": self.summary,
                 "description": self.explanation,
-                "operationId": self.operation_id,
+                "operationId": self.operation_id + f".{method.lower()}",
                 "responses": self.responses,
                 "parameters": self.parameters,
                 "requestBody": self.request_body,
