@@ -125,4 +125,6 @@ def is_data_type(param: Parameter):
     """
     if is_django_type(param):
         return None
+    if isinstance(param.annotation, Payload):
+        return param.annotation.unquery_type
     return param.annotation
