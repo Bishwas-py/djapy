@@ -1,6 +1,7 @@
 __all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl']
 
 import inspect
+import json
 import typing
 from typing import Any, Annotated, List, Union, get_origin, ClassVar
 
@@ -57,6 +58,11 @@ class QueryMapperSchema(Schema):
             return value
         if isinstance(value, list):
             return value[0]
+        if inspect.isclass(field_type.annotation) and issubclass(field_type.annotation, Schema):
+            new_dict = {}
+            for i, v in value.items():
+                new_dict[i] = [json.loads(q) for q in v]
+            return new_dict
         return value
 
 
