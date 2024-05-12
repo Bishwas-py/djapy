@@ -103,32 +103,47 @@ def get_passable_tuple(param: inspect.Parameter, annotation=None):
     return passable_tuple
 
 
-def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict = None):
-    """
-    Get the query and data schema from the required parameters. Basically, for input validation.
-    :param required_params: A list of required parameters
-    :param extra_query_dict: A dictionary of extra query parameters
-    """
+def add_query_schema(param, query_schema_dict):
+    if param.annotation is inspect.Parameter.empty:
+        raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
+                        f"`def view_func({param.name}: str):`")
+    query_schema_dict[param.name] = get_passable_tuple(param)
+
+
+def add_content_type_schema(param, form_schema_dict, data_schema_dict, data_type):
+    annotation, default = get_passable_tuple(param, data_type)
+    if annotation.content_type == "application/x-www-form-urlencoded":
+        form_schema_dict[param.name] = (annotation, default)
+    elif annotation.content_type == "application/json":
+        data_schema_dict[param.name] = (annotation, default)
+
+
+def func_path_and_line(view_func):
+    func_line = inspect.getsourcelines(view_func)[0]
+    return "".join(func_line)
+
+
+def get_schemas(view_func: callable, extra_query_dict: Dict = None):
+    required_params: List[inspect.Parameter] = view_func.required_params
     query_schema_dict = {}
     data_schema_dict = {}
     form_schema_dict = {}
     schema_dict = {}
 
-    if not extra_query_dict:
-        extra_query_dict = {}
+    already_added_content_types = []
     for param in required_params:
         is_query = is_param_query_type(param)
-        if param.annotation is inspect.Parameter.empty:
-            raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
-                            f"`def view_func({param.name}: str):`")
         if is_query:
-            query_schema_dict[param.name] = get_passable_tuple(param)
+            add_query_schema(param, query_schema_dict)
         elif data_type := is_data_type(param):
-            annotation, default = get_passable_tuple(param, data_type)
-            if annotation.content_type == "application/x-www-form-urlencoded":
-                form_schema_dict[param.name] = (annotation, default)
-            elif annotation.content_type == "application/json":
-                data_schema_dict[param.name] = (annotation, default)
+            add_content_type_schema(param, form_schema_dict, data_schema_dict, data_type)
+            already_added_content_types.append(param.annotation)
+            if len(set(already_added_content_types)) > 1:
+                raise TypeError(
+                    f"\n{func_path_and_line(view_func)}"
+                    f"Only one content type is allowed in a view function: "
+                    f"`{view_func.__name__}`; `{param.name}: {param.annotation}`."
+                )
 
     schema_dict["query"] = create_model(
         REQUEST_INPUT_QUERY_SCHEMA_NAME,
@@ -278,15 +293,8 @@ def djapify(view_func: Callable = None,
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-        _wrapped_view.input_schema = view_func.input_schema = get_schemas(view_func.required_params, extra_query_dict)
-        print(_wrapped_view.schema)
-        # query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
-        # _wrapped_view.query_schema = view_func.query_schema = query_schema
-        # _wrapped_view.data_schema = view_func.data_schema = data_schema
-
-        # single_data_key, single_data_schema = get_single_data_schema(data_schema)
-        # _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
-        # _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
+        input_schema = get_schemas(view_func, extra_query_dict)
+        _wrapped_view.input_schema = view_func.input_schema = input_schema
 
         _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 
