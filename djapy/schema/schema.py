@@ -73,11 +73,6 @@ class QueryMapperSchema(Schema):
             return value
         if isinstance(value, list):
             return value[0]
-        if inspect.isclass(field_type.annotation) and issubclass(field_type.annotation, Schema):
-            new_dict = {}
-            for key, new_values in value.items():
-                new_dict[key] = [get_json_dict(new_new) for new_new in new_values]
-            return new_dict
         return value
 
 
