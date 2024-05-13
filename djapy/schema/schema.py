@@ -1,4 +1,4 @@
-__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl', 'get_json']
+__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl', 'get_json_dict']
 
 import inspect
 import typing
@@ -57,7 +57,7 @@ json_modal_schema = create_model(
 )
 
 
-def get_json(to_jsonify_text: str):
+def get_json_dict(to_jsonify_text: str):
     return json_modal_schema.model_validate({
         JSON_BODY_PARSE_NAME: to_jsonify_text
     }).dict().get(JSON_BODY_PARSE_NAME)
@@ -76,7 +76,7 @@ class QueryMapperSchema(Schema):
         if inspect.isclass(field_type.annotation) and issubclass(field_type.annotation, Schema):
             new_dict = {}
             for key, new_values in value.items():
-                new_dict[key] = [get_json(new_new) for new_new in new_values]
+                new_dict[key] = [get_json_dict(new_new) for new_new in new_values]
             return new_dict
         return value
 

@@ -112,9 +112,13 @@ def add_query_schema(param, query_schema_dict):
 
 def add_content_type_schema(param, form_schema_dict, data_schema_dict, data_type):
     annotation, default = get_passable_tuple(param, data_type)
-    if annotation.content_type == "application/x-www-form-urlencoded":
-        form_schema_dict[param.name] = (annotation, default)
-    elif annotation.content_type == "application/json":
+    has_content_type = hasattr(annotation, 'content_type')
+    if has_content_type:
+        if annotation.content_type == "application/x-www-form-urlencoded":
+            form_schema_dict[param.name] = (annotation, default)
+        elif annotation.content_type == "application/json":
+            data_schema_dict[param.name] = (annotation, default)
+    else:
         data_schema_dict[param.name] = (annotation, default)
 
 

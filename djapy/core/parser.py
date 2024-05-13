@@ -10,7 +10,7 @@ from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME,
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
-from ..schema.schema import json_modal_schema, get_json
+from ..schema.schema import json_modal_schema, get_json_dict
 
 
 class RequestDataParser:
@@ -33,7 +33,10 @@ class RequestDataParser:
         form_schema = self.view_func.input_schema["form"]
 
         if not data_schema.is_empty():
-            data = data_schema.validate_via_request(self.get_json_data(), context=context)
+            request_body = self.request.body.decode()
+            if not request_body:
+                request_body = "{}"
+            data = data_schema.validate_via_request(get_json_dict(request_body), context=context)
             data = data.__dict__
         else:
             data = {}
@@ -43,7 +46,6 @@ class RequestDataParser:
             form = form.__dict__
         else:
             form = {}
-
         query_data = self.view_func.input_schema["query"].model_validate({
             **self.view_kwargs,
             **dict(self.request.GET)
@@ -55,9 +57,6 @@ class RequestDataParser:
             **form,
         }
         return destructured_object_data
-
-    def get_json_data(self):
-        return get_json(self.request.body.decode())
 
     def set_request_data(self):
         """
