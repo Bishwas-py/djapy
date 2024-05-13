@@ -99,13 +99,13 @@ class OpenAPI_Path:
     def set_parameters_from_required_params(self):
         prepared_query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
         # possibly, this should be a property, no refs
-        print(prepared_query_schema)
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
                 if name in self.parameters_keys:
                     continue
-                print(str(self.url_pattern.pattern))
-                is_url_param = re.search(name, str(self.url_pattern.pattern))
+                # is_url_param = re.search(name, str(self.url_pattern.pattern)) # this patter is flawed
+                pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+                is_url_param = re.search(pattern, str(self.url_pattern.pattern))
                 required_ = name in prepared_query_schema.get("required", [])
                 parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
                 self.parameters_keys.append(name)
@@ -113,7 +113,7 @@ class OpenAPI_Path:
 
     def set_parameters_from_parent_url_pattern(self):
         for url_pattern in self.parent_url_pattern + [self.url_pattern]:
-            pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+            pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
             if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
                 schema = basic_query_schema(_type)
@@ -132,7 +132,7 @@ class OpenAPI_Path:
 
     @staticmethod
     def format_pattern(url_pattern: URLPattern) -> str:
-        pattern = '[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
+        pattern = r'[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
         match = re.search(pattern, str(url_pattern.pattern))
         if match:
             return re.sub(pattern, '{' + match.group('variable') + '}', str(url_pattern.pattern))
