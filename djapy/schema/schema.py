@@ -1,5 +1,6 @@
 __all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl', 'get_json_dict', 'Form', 'QueryMapperSchema']
 
+import inspect
 import typing
 from typing import Any, Annotated, List, Union, get_origin, ClassVar
 
@@ -68,8 +69,9 @@ class QueryMapperSchema(Schema):
     @field_validator("*", mode="before")
     def __field_validator__(cls, value: Any, info: ValidationInfo):
         field_type = cls.model_fields.get(info.field_name)
-        if issubclass(get_origin(field_type.annotation), typing.Iterable) and typing.get_args(
-                field_type.annotation) != ():
+        origin = get_origin(field_type.annotation)
+        if (inspect.isclass(origin) and issubclass(origin, typing.Iterable)
+                and typing.get_args(field_type.annotation) != ()):
             return value
         if isinstance(value, list):
             return value[0]
@@ -84,18 +86,17 @@ class SourceAble(BaseModel):
     """
     Allows the model to have a source object.
     """
-    _source_obj: Any | None = None
-    _validation_info: ValidationInfo | None = None
-    _context: dict | None = None
+    obj: ClassVar[Any] = None
+    info: ClassVar[ValidationInfo] = None
+    ctx: ClassVar[dict] = None
 
     @model_validator(mode="wrap")
     def __validator__(cls, val: Any, next_: typing.Callable[[Any], typing.Self],
                       validation_info: ValidationInfo) -> typing.Self:
         obj = next_(val)
-        obj._source_obj = val
-        obj._validation_info = validation_info
-        obj._context = validation_info.context
-
+        obj.obj = val
+        obj.info = validation_info
+        obj.ctx = validation_info.context
         return obj
 
 
