@@ -14,7 +14,8 @@ BASIC_TYPES = {
     "float": "number",
     "bool": "boolean",
     "datetime": "string",
-    "uuid": "uuid"
+    "uuid": "uuid",
+    "list": "array",
 }
 
 BASIC_URL_QUERY_TYPES = {
@@ -102,7 +103,7 @@ def schema_type(param: Parameter | object):
         type_object_ = param.annotation
     else:
         type_object_ = param
-    if hasattr(type_object_, "Config") and issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel):
+    if inspect.isclass(type_object_) and (issubclass(type_object_, BaseModel) or isinstance(type_object_, BaseModel)):
         return type_object_
     return None
 
@@ -111,29 +112,15 @@ def is_django_type(param: Parameter):
     """
     Checks if the parameter is a django type, or payload[str, int, float, bool]
     """
-    if inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase):
-        return True
-    return False
-
-
-def is_schemable_type(param: Parameter):
-    """
-    Checks if the parameter is a schemable type, or payload[str, int, float, bool]
-    """
-    if inspect.isclass(param.annotation) and inspect.isclass(param.annotation):
-        return True
-    return False
+    return inspect.isclass(param.annotation) and issubclass(param.annotation, HttpResponseBase)
 
 
 def is_data_type(param: Parameter):
     """
     Checks if the parameter is a data type, or payload[str, int, float, bool]
     """
-    if isinstance(param.annotation, Payload):
-        return param.annotation.unquery_type
     if is_django_type(param):
         return None
-    if is_schemable_type(param):
-        return param.annotation
-
-    return None
+    if isinstance(param.annotation, Payload):
+        return param.annotation.unquery_type
+    return param.annotation

@@ -66,17 +66,22 @@ class OpenAPI_Path:
         self.set_request_body()
 
     def set_request_body(self):
-        if self.view_func.single_data_schema:
-            prepared_schema = self.view_func.single_data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-        else:
-            prepared_schema = self.view_func.data_schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-        if "$defs" in prepared_schema:
-            self.export_components.update(prepared_schema.pop("$defs"))
-        content = prepared_schema if prepared_schema["properties"] else {}
-        if content:
-            self.request_body = {
-                "content": {"application/json": {"schema": content}}
-            }
+        for schema in [self.view_func.input_schema["data"], self.view_func.input_schema["form"]]:
+            if single_schema := schema.single():
+                schema = single_schema[1]
+            prepared_schema = schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+            if "$defs" in prepared_schema:
+                self.export_components.update(prepared_schema.pop("$defs"))
+            content = prepared_schema if prepared_schema["properties"] else {}
+            if content:
+                if not self.request_body.get("content"):
+                    self.request_body["content"] = {schema.content_type: {"schema": content}}
+                if not self.request_body["content"].get(schema.content_type):
+                    self.request_body["content"][schema.content_type] = {"schema": content}
+                if not self.request_body["content"][schema.content_type].get("schema"):
+                    self.request_body["content"][schema.content_type]["schema"] = content
+
+                self.request_body["content"][schema.content_type]["schema"] = content
 
     @staticmethod
     def make_parameters(name, schema, required, in_="query"):
@@ -92,13 +97,15 @@ class OpenAPI_Path:
         self.set_parameters_from_required_params()
 
     def set_parameters_from_required_params(self):
-        prepared_query_schema = self.view_func.query_schema.model_json_schema(
-            ref_template=REF_MODAL_TEMPLATE)  # possibly, this should be a property, no refs
+        prepared_query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+        # possibly, this should be a property, no refs
         if prepared_query_schema["properties"]:
             for name, schema in prepared_query_schema["properties"].items():
                 if name in self.parameters_keys:
                     continue
-                is_url_param = re.search(name, str(self.url_pattern.pattern))
+                # is_url_param = re.search(name, str(self.url_pattern.pattern)) # this patter is flawed
+                pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+                is_url_param = re.search(pattern, str(self.url_pattern.pattern))
                 required_ = name in prepared_query_schema.get("required", [])
                 parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
                 self.parameters_keys.append(name)
@@ -106,7 +113,7 @@ class OpenAPI_Path:
 
     def set_parameters_from_parent_url_pattern(self):
         for url_pattern in self.parent_url_pattern + [self.url_pattern]:
-            pattern = '[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+            pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
             if match := re.search(pattern, str(url_pattern.pattern)):
                 _type, name = match.groups()
                 schema = basic_query_schema(_type)
@@ -125,7 +132,7 @@ class OpenAPI_Path:
 
     @staticmethod
     def format_pattern(url_pattern: URLPattern) -> str:
-        pattern = '[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
+        pattern = r'[<](?:(?P<type>\w+?):)?(?P<variable>\w+)[>]'
         match = re.search(pattern, str(url_pattern.pattern))
         if match:
             return re.sub(pattern, '{' + match.group('variable') + '}', str(url_pattern.pattern))
@@ -165,7 +172,7 @@ class OpenAPI_Path:
             method.lower(): {
                 "summary": self.summary,
                 "description": self.explanation,
-                "operationId": self.operation_id,
+                "operationId": self.operation_id + f".{method.lower()}",
                 "responses": self.responses,
                 "parameters": self.parameters,
                 "requestBody": self.request_body,
