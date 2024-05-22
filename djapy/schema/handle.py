@@ -42,6 +42,9 @@ class ReSchema:
     def server_error_5xx(self, schema):
         return self.__call__(schema, status_codes.server_error_5xx)
 
+    def all(self, schema):
+        return self.__call__(schema, status_codes.all)
+
 
 class Payload:
     unquery_type: G_TYPE | None = None

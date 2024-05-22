@@ -1,4 +1,4 @@
-__all__ = ['Schema', 'SourceAble', 'QueryList', 'ImageUrl', 'get_json_dict', 'Form', 'QueryMapperSchema']
+__all__ = ['Schema', 'Outsource', 'QueryList', 'ImageUrl', 'get_json_dict', 'Form', 'QueryMapperSchema']
 
 import inspect
 import typing
@@ -82,21 +82,24 @@ class Form(QueryMapperSchema):
     content_type = "application/x-www-form-urlencoded"
 
 
-class SourceAble(BaseModel):
+class Outsource(BaseModel):
     """
     Allows the model to have a source object.
     """
-    obj: ClassVar[Any] = None
-    info: ClassVar[ValidationInfo] = None
-    ctx: ClassVar[dict] = None
+    _obj = None
+    _info: ValidationInfo = None
+    _ctx: dict = None
 
     @model_validator(mode="wrap")
-    def __validator__(cls, val: Any, next_: typing.Callable[[Any], typing.Self],
-                      validation_info: ValidationInfo) -> typing.Self:
+    def __validator__(cls,
+                      val: Any,
+                      next_: typing.Callable[[Any], typing.Self],
+                      validation_info: ValidationInfo
+                      ) -> typing.Self:
         obj = next_(val)
-        obj.obj = val
-        obj.info = validation_info
-        obj.ctx = validation_info.context
+        obj._obj = val
+        obj._info = validation_info
+        obj._ctx = validation_info.context
         return obj
 
 
