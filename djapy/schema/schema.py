@@ -64,6 +64,9 @@ def get_json_dict(to_jsonify_text: str):
 
 
 class QueryMapperSchema(Schema):
+    """
+    Multiple query or formdata like data can be validated using this model.
+    """
     content_type = "_query_mapper"
 
     @field_validator("*", mode="before")
@@ -79,12 +82,16 @@ class QueryMapperSchema(Schema):
 
 
 class Form(QueryMapperSchema):
+    """
+    Post form data can be validated using this model.
+    """
     content_type = "application/x-www-form-urlencoded"
 
 
 class Outsource(BaseModel):
     """
-    Allows the model to have a source object.
+    Allows the model to have a source object, info object and context object.
+    Specially useful for validation and checking on @computed_fields.
     """
     _obj = None
     _info: ValidationInfo = None
