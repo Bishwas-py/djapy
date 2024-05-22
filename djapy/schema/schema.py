@@ -68,7 +68,8 @@ class QueryMapperSchema(Schema):
     @field_validator("*", mode="before")
     def __field_validator__(cls, value: Any, info: ValidationInfo):
         field_type = cls.model_fields.get(info.field_name)
-        if get_origin(field_type.annotation) is list and typing.get_args(field_type.annotation) != ():
+        if issubclass(get_origin(field_type.annotation), typing.Iterable) and typing.get_args(
+                field_type.annotation) != ():
             return value
         if isinstance(value, list):
             return value[0]
