@@ -76,7 +76,7 @@ class QueryMapperSchema(Schema):
         if (inspect.isclass(origin) and issubclass(origin, typing.Iterable)
                 and typing.get_args(field_type.annotation) != ()):
             return value
-        if isinstance(value, list):
+        if isinstance(value, list):  # Django's QueryDict {key: [value]} is converted to list.
             return value[0]
         return value
 
