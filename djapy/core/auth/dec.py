@@ -7,7 +7,7 @@ from django.http import HttpRequest, JsonResponse
 
 from . import BaseAuthMechanism
 from ..defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
-from ... import SessionAuth
+from djapy.core.auth import SessionAuth
 
 
 def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
