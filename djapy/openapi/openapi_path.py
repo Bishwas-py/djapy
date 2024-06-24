@@ -75,13 +75,13 @@ class OpenAPI_Path:
             content = prepared_schema if prepared_schema["properties"] else {}
             if content:
                 if not self.request_body.get("content"):
-                    self.request_body["content"] = {schema.content_type: {"schema": content}}
-                if not self.request_body["content"].get(schema.content_type):
-                    self.request_body["content"][schema.content_type] = {"schema": content}
-                if not self.request_body["content"][schema.content_type].get("schema"):
-                    self.request_body["content"][schema.content_type]["schema"] = content
+                    self.request_body["content"] = {schema.cvar_c_type: {"schema": content}}
+                if not self.request_body["content"].get(schema.cvar_c_type):
+                    self.request_body["content"][schema.cvar_c_type] = {"schema": content}
+                if not self.request_body["content"][schema.cvar_c_type].get("schema"):
+                    self.request_body["content"][schema.cvar_c_type]["schema"] = content
 
-                self.request_body["content"][schema.content_type]["schema"] = content
+                self.request_body["content"][schema.cvar_c_type]["schema"] = content
 
     @staticmethod
     def make_parameters(name, schema, required, in_="query"):
@@ -147,8 +147,8 @@ class OpenAPI_Path:
         for status, schema in self.url_pattern.callback.schema.items():
             description = ""
             if schema_type(schema):
-                if isinstance(schema, Schema) and schema.Info.description:
-                    description = schema.Info.description.get(status, "Unknown")
+                if isinstance(schema, Schema) and schema.Info.cvar_describe:
+                    description = schema.Info.cvar_describe.get(status, "Unknown")
             if not description:
                 description = self.make_description_from_status(status)
             response_model = create_model(

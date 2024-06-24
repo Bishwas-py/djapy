@@ -17,7 +17,7 @@ class Info:
     def __init__(self, title: str, version: str, description: str, site_name="Djapy"):
         self.title = title
         self.version = version
-        self.description = description
+        self.cvar_describe = description
         self.license = None
         self.contact = None
         self.site_name = site_name
@@ -26,7 +26,7 @@ class Info:
         return {
             "title": self.title,
             "version": self.version,
-            "description": self.description,
+            "description": self.cvar_describe,
             "license": self.license,
             "contact": self.contact
         }

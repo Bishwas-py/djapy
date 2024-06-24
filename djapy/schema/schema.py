@@ -22,8 +22,8 @@ class Schema(BaseModel):
     """
     model_config = ConfigDict(validate_default=True, validate_assignment=True, from_attributes=True,
                               arbitrary_types_allowed=True)
-    content_type: ClassVar = "application/json"
-    description: ClassVar[dict] = {}
+    cvar_c_type: ClassVar = "application/json"
+    cvar_describe: ClassVar[dict] = {}  # this is a description about the class
 
     @classmethod
     def validate_via_request(cls, json_data, context: dict):
@@ -67,7 +67,7 @@ class QueryMapperSchema(Schema):
     """
     Multiple query or formdata like data can be validated using this model.
     """
-    content_type = "_query_mapper"
+    cvar_c_type = "_query_mapper"
 
     @field_validator("*", mode="before")
     def __field_validator__(cls, value: Any, info: ValidationInfo):
@@ -85,7 +85,7 @@ class Form(QueryMapperSchema):
     """
     Post form data can be validated using this model.
     """
-    content_type = "application/x-www-form-urlencoded"
+    cvar_c_type = "application/x-www-form-urlencoded"
 
 
 class Outsource(BaseModel):

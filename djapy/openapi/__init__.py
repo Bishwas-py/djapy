@@ -95,7 +95,7 @@ class OpenAPI:
             site_name="Djapy",
     ):
         self.info.title = title
-        self.info.description = description
+        self.info.cvar_describe = description
         self.info.version = version
         self.info.contact = contact
         self.info.site_name = site_name
