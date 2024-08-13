@@ -251,8 +251,8 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
                 response = HttpResponse(content_type="application/json")
-                parser = RequestDataParser(request, view_func, view_kwargs)
-                _input_data = parser.parse_request_data()
+                request_parser = RequestDataParser(request, view_func, view_kwargs)
+                _input_data = request_parser.parse_request_data()
 
                 if view_func.in_response_param:
                     _input_data[view_func.in_response_param.name] = response
@@ -264,8 +264,11 @@ def djapify(view_func: Callable = None,
                 status_code, response_data = response_from_view_func \
                     if isinstance(response_from_view_func, tuple) else (200, response_from_view_func)
 
-                parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
-                parsed_data = parser.parse_response_data()
+                response_parser = ResponseDataParser(
+                    status_code, response_data, schema_dict_returned, request,
+                    _input_data
+                )
+                parsed_data = response_parser.parse_response_data()
 
                 response.status_code = status_code
                 response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
