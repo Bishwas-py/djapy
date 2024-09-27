@@ -1,9 +1,11 @@
 from django.http import HttpRequest
 
+from djapy.core.defaults import DEFAULT_AUTH_ERROR
+
 
 class BaseAuthMechanism:
     def __init__(self, permissions: list[str] = None, message_response: dict = None, *args, **kwargs):
-        self.message_response = message_response or {"message": "Unauthorized"}
+        self.message_response = message_response or DEFAULT_AUTH_ERROR
         self.permissions = permissions or []
 
     def authenticate(self, request: HttpRequest, *args, **kwargs) -> tuple[int, dict] | None:
@@ -26,17 +28,11 @@ class SessionAuth(BaseAuthMechanism):
 
     def authenticate(self, request: HttpRequest, *args, **kwargs):
         if not request.user.is_authenticated:
-            return 403, {
-                "message": "Unauthorized",
-                "alias": "access_denied"
-            }
+            return 403, self.message_response
 
     def authorize(self, request: HttpRequest, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.has_perms(self.permissions):
-            return 403, {
-                "message": "Unauthorized",
-                "alias": "permission_denied"
-            }
+            return 403, self.message_response
 
     def schema(self):
         return {

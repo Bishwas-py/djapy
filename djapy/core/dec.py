@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import json
+import types
 from functools import wraps
 from typing import Callable, Dict, Type, List
 
@@ -16,15 +17,17 @@ from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE,
     DEFAULT_MESSAGE_ERROR
 from djapy.pagination.base_pagination import BasePagination
 from .parser import ResponseDataParser, RequestDataParser, get_response_schema_dict
-from .labels import REQUEST_INPUT_SCHEMA_NAME
+from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, REQUEST_INPUT_QUERY_SCHEMA_NAME, REQUEST_INPUT_FORM_SCHEMA_NAME, \
+    REQUEST_INPUT_SCHEMA_NAME
 import logging
 
 __all__ = ['djapify']
 
 from .response import create_json_from_validation_error
 from .type_check import is_param_query_type, schema_type, is_data_type
+from ..schema.schema import Form, QueryMapperSchema
 
-MAX_HANDLER_COUNT = 1
+MAX_HANDLER_COUNT = 3
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
 ERROR_HANDLER_PREFIX = "handle_"
 IN_APP_AUTH_MECHANISM_NAME = "AUTH_MECHANISM"
@@ -47,13 +50,13 @@ _errorhandler_functions = []
 try:
     _imported_errorhandler = importlib.import_module(ERROR_HANDLER_MODULE)
     _all_handlers = dir(_imported_errorhandler)
-    if len(_all_handlers) > MAX_HANDLER_COUNT:
-        logging.warning(
-            f"Errorhandler module should not contain more than {MAX_HANDLER_COUNT} handlers. "
-            f"We discourage using more than {MAX_HANDLER_COUNT} handlers in errorhandler module.")
     for f in dir(_imported_errorhandler):
         if f.startswith(ERROR_HANDLER_PREFIX):
             _errorhandler_functions.append(getattr(_imported_errorhandler, f))
+    if len(_errorhandler_functions) > MAX_HANDLER_COUNT:
+        logging.warning(
+            f"Errorhandler module should not contain more than {MAX_HANDLER_COUNT} handlers. "
+            f"We discourage using more than {MAX_HANDLER_COUNT} handlers in errorhandler module.")
 except Exception as e:
     _imported_errorhandler = None
 
@@ -100,40 +103,73 @@ def get_passable_tuple(param: inspect.Parameter, annotation=None):
     return passable_tuple
 
 
-def get_schemas(required_params: List[inspect.Parameter], extra_query_dict: Dict = None):
-    """
-    Get the query and data schema from the required parameters. Basically, for input validation.
-    :param required_params: A list of required parameters
-    :param extra_query_dict: A dictionary of extra query parameters
-    """
+def add_query_schema(param, query_schema_dict):
+    if param.annotation is inspect.Parameter.empty:
+        raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
+                        f"`def view_func({param.name}: str):`")
+    query_schema_dict[param.name] = get_passable_tuple(param)
+
+
+def add_content_type_schema(param, form_schema_dict, data_schema_dict, data_type):
+    annotation, default = get_passable_tuple(param, data_type)
+    has_content_type = hasattr(annotation, 'cvar_c_type')
+    if has_content_type:
+        if annotation.cvar_c_type == "application/x-www-form-urlencoded":
+            form_schema_dict[param.name] = (annotation, default)
+        elif annotation.cvar_c_type == "application/json":
+            data_schema_dict[param.name] = (annotation, default)
+    else:
+        data_schema_dict[param.name] = (annotation, default)
+
+
+def func_path_and_line(view_func):
+    func_line = inspect.getsourcelines(view_func)[0]
+    return "".join(func_line)
+
+
+def get_schemas(view_func: callable, extra_query_dict: Dict = None):
+    required_params: List[inspect.Parameter] = view_func.required_params
     query_schema_dict = {}
     data_schema_dict = {}
-    if not extra_query_dict:
-        extra_query_dict = {}
+    form_schema_dict = {}
+    schema_dict = {}
+
+    already_added_content_types = []
     for param in required_params:
         is_query = is_param_query_type(param)
-        if param.annotation is inspect.Parameter.empty:
-            raise TypeError(f"Parameter `{param.name}` should have a type annotation, because it's required. e.g. "
-                            f"`def view_func({param.name}: str):`")
         if is_query:
-            query_schema_dict[param.name] = get_passable_tuple(param)
+            add_query_schema(param, query_schema_dict)
         elif data_type := is_data_type(param):
-            data_schema_dict[param.name] = get_passable_tuple(param, data_type)
+            add_content_type_schema(param, form_schema_dict, data_schema_dict, data_type)
+            already_added_content_types.append(param.annotation)
+            if len(set(already_added_content_types)) > 1:
+                raise TypeError(
+                    f"\n{func_path_and_line(view_func)}"
+                    f"Only one content type is allowed in a view function: "
+                    f"`{view_func.__name__}`; `{param.name}: {param.annotation}`. "
+                    f"\nIt should be either form or data schema."
+                )
 
-    query_model = create_model(
-        REQUEST_INPUT_SCHEMA_NAME,
+    schema_dict["query"] = create_model(
+        REQUEST_INPUT_QUERY_SCHEMA_NAME,
         **query_schema_dict,
         **extra_query_dict,
-        __base__=Schema
+        __base__=QueryMapperSchema
     )
 
-    data_model = create_model(
-        REQUEST_INPUT_SCHEMA_NAME,
+    schema_dict["data"] = create_model(
+        REQUEST_INPUT_DATA_SCHEMA_NAME,
         **data_schema_dict,
         __base__=Schema
     )
 
-    return query_model, data_model
+    schema_dict["form"] = create_model(
+        REQUEST_INPUT_FORM_SCHEMA_NAME,
+        **form_schema_dict,
+        __base__=Form
+    )
+
+    return schema_dict
 
 
 def get_auth(view_func: Callable,
@@ -176,16 +212,6 @@ def get_in_response_param(required_params: List[inspect.Parameter]):
     return None
 
 
-def get_single_data_schema(data_schema):
-    if len(data_schema.__annotations__) == 1:
-        single_data_schema = list(data_schema.__annotations__.values())[0]
-        if inspect.isclass(single_data_schema):
-            if issubclass(single_data_schema, Schema):
-                single_data_key = list(data_schema.__annotations__.keys())[0]
-                return single_data_key, single_data_schema
-    return None, None
-
-
 def djapify(view_func: Callable = None,
             allowed_method: ALLOW_METHODS_LITERAL | List[ALLOW_METHODS_LITERAL] = "GET",
             openapi: bool = True,
@@ -225,8 +251,8 @@ def djapify(view_func: Callable = None,
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
             try:
                 response = HttpResponse(content_type="application/json")
-                parser = RequestDataParser(request, view_func, view_kwargs)
-                _input_data = parser.parse_request_data()
+                request_parser = RequestDataParser(request, view_func, view_kwargs)
+                _input_data = request_parser.parse_request_data()
 
                 if view_func.in_response_param:
                     _input_data[view_func.in_response_param.name] = response
@@ -244,11 +270,11 @@ def djapify(view_func: Callable = None,
                     parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
                     parsed_data = parser.parse_response_data()
 
-                response.status_code = status_code
-                response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
-
-                parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
-                parsed_data = parser.parse_response_data()
+                response_parser = ResponseDataParser(
+                    status_code, response_data, schema_dict_returned, request,
+                    _input_data
+                )
+                parsed_data = response_parser.parse_response_data()
 
                 response.status_code = status_code
                 response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
@@ -281,15 +307,8 @@ def djapify(view_func: Callable = None,
 
         view_func.schema = _wrapped_view.schema = schema_dict_returned
         _wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-
-        query_schema, data_schema = get_schemas(view_func.required_params, extra_query_dict)
-        _wrapped_view.query_schema = view_func.query_schema = query_schema
-        _wrapped_view.data_schema = view_func.data_schema = data_schema
-
-        single_data_key, single_data_schema = get_single_data_schema(data_schema)
-
-        _wrapped_view.single_data_schema = view_func.single_data_schema = single_data_schema
-        _wrapped_view.single_data_key = view_func.single_data_key = single_data_key
+        input_schema = get_schemas(view_func, extra_query_dict)
+        _wrapped_view.input_schema = view_func.input_schema = input_schema
 
         _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 

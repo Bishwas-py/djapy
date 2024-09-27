@@ -7,12 +7,16 @@ from django.http import HttpRequest, JsonResponse
 
 from . import BaseAuthMechanism
 from ..defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
+from djapy.core.auth import SessionAuth
 
 
 def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
-               permissions: List[str] = None) -> Callable:
+               permissions: List[str] = None,
+               msg=None) -> Callable:
     if permissions is None:
         permissions = []
+    if not auth:
+        auth = SessionAuth
 
     def decorator(view_func):
         @wraps(view_func)
@@ -23,6 +27,7 @@ def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
             _wrapped_view.auth_mechanism = auth(permissions)
         else:
             _wrapped_view.auth_mechanism = auth
+        _wrapped_view.auth_mechanism.set_message_response(msg)
 
         return _wrapped_view
 
