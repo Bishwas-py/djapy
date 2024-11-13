@@ -15,10 +15,9 @@ from pydantic import ValidationError, create_model
 from .auth import BaseAuthMechanism, base_auth_obj
 from .defaults import ALLOW_METHODS_LITERAL, DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, \
     DEFAULT_MESSAGE_ERROR
-from djapy.pagination.base_pagination import BasePagination
 from .parser import ResponseDataParser, RequestDataParser, get_response_schema_dict
 from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, REQUEST_INPUT_QUERY_SCHEMA_NAME, REQUEST_INPUT_FORM_SCHEMA_NAME, \
-    REQUEST_INPUT_SCHEMA_NAME
+    REQUEST_INPUT_SCHEMA_NAME, DJAPY_ALLOWED_METHOD, DJAPY_AUTH_MECHANISM
 import logging
 
 __all__ = ['djapify']
@@ -157,6 +156,7 @@ def get_schemas(view_func: callable, extra_query_dict: Dict = None):
         __base__=QueryMapperSchema
     )
 
+    print(data_schema_dict)
     schema_dict["data"] = create_model(
         REQUEST_INPUT_DATA_SCHEMA_NAME,
         **data_schema_dict,
@@ -182,7 +182,7 @@ def get_auth(view_func: Callable,
     :param auth: The auth mechanism
     :param in_app_auth_mechanism: The auth mechanism in the app or views.py
     """
-    auth = getattr(view_func, 'auth_mechanism', None) or auth
+    auth = getattr(view_func, DJAPY_AUTH_MECHANISM, None) or auth
     if auth == base_auth_obj and in_app_auth_mechanism:
         wrapped_auth = in_app_auth_mechanism
     elif auth is None:
@@ -244,8 +244,8 @@ def djapify(view_func: Callable = None,
             if authorization_info_tuple:
                 return JsonResponse(authorization_info_tuple[1], status=authorization_info_tuple[0])
 
-            djapy_allowed_method = getattr(_wrapped_view, 'djapy_allowed_method', None)
-            djapy_message_response = getattr(view_func, 'djapy_message_response', None)
+            djapy_allowed_method = getattr(_wrapped_view, DJAPY_ALLOWED_METHOD, None)
+            djapy_message_response = getattr(view_func, "djapy_message_response", None)
 
             if request.method not in djapy_allowed_method:
                 return JsonResponse(djapy_message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
@@ -306,7 +306,7 @@ def djapify(view_func: Callable = None,
 
         _wrapped_view.auth_mechanism = get_auth(view_func, auth, in_app_auth_mechanism)
 
-        if not getattr(_wrapped_view, 'djapy_allowed_method', None):
+        if not getattr(_wrapped_view, DJAPY_ALLOWED_METHOD, None):
             if isinstance(allowed_method, str):
                 _wrapped_view.djapy_allowed_method = [allowed_method]
             else:
