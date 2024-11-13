@@ -24,8 +24,8 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
             parser = RequestDataParser(request, view_func, kwargs)
             data = parser.parse_request_data()
 
-            if view_func.in_response_param:
-               data[view_func.in_response_param.name] = response
+            if view_func.djapy_resp_param:
+               data[view_func.djapy_resp_param.name] = response
 
             content = view_func(request, *args, **data)
             return self._get_response(

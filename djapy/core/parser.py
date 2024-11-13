@@ -10,11 +10,13 @@ from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME,
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
-from ..schema.schema import json_modal_schema, get_json_dict
+from .view_func import DjapyViewFunc
+
+from ..schema.schema import get_json_dict
 
 
 class RequestDataParser:
-   def __init__(self, request: HttpRequest, view_func, view_kwargs):
+   def __init__(self, request: HttpRequest, view_func: DjapyViewFunc, view_kwargs):
       self.view_func = view_func
       self.view_kwargs = view_kwargs
       self.request = request
@@ -29,8 +31,8 @@ class RequestDataParser:
       Parse the request data and validate it with the data model.
       """
       context = {"request": self.request}
-      data_schema = self.view_func.input_schema["data"]
-      form_schema = self.view_func.input_schema["form"]
+      data_schema = self.view_func.djapy_inp_schema["data"]
+      form_schema = self.view_func.djapy_inp_schema["form"]
 
       if not data_schema.is_empty():
          request_body = self.request.body.decode()
@@ -46,7 +48,7 @@ class RequestDataParser:
          form = form.__dict__
       else:
          form = {}
-      query_data = self.view_func.input_schema["query"].model_validate({
+      query_data = self.view_func.djapy_inp_schema["query"].model_validate({
          **self.view_kwargs,
          **dict(self.request.GET)
       }, context=context)

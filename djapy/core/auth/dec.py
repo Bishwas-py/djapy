@@ -6,7 +6,7 @@ from typing import Dict, Callable, List, Type
 from django.http import HttpRequest
 
 from . import BaseAuthMechanism
-from ..d_types import Dyp
+from ..d_types import dyp
 from ..defaults import DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 from djapy.core.auth import SessionAuth
 
@@ -25,10 +25,10 @@ def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
          return view_func(request, *args, **kwargs)
 
       if auth and inspect.isclass(auth) and issubclass(auth, BaseAuthMechanism):
-         _wrapped_view.auth_mechanism = auth(permissions)
+         _wrapped_view.djapy_auth = auth(permissions)
       else:
-         _wrapped_view.auth_mechanism = auth
-      _wrapped_view.auth_mechanism.set_message_response(msg)
+         _wrapped_view.djapy_auth = auth
+      _wrapped_view.djapy_auth.set_message_response(msg)
 
       return _wrapped_view
 
@@ -39,7 +39,7 @@ def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
 
 
 def djapy_method(
-  allowed_method_or_list: Dyp.METHODS,
+  allowed_method_or_list: dyp.methods,
   message_response: Dict[str, str] = None
 ) -> Callable:
    message_response = message_response or DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
@@ -56,9 +56,9 @@ def djapy_method(
          return view_func(request, *args, **kwargs)
 
       if isinstance(allowed_method_or_list, str):
-         _wrapped_view.djapy_allowed_method = [allowed_method_or_list]
+         _wrapped_view.djapy_methods = [allowed_method_or_list]
       else:
-         _wrapped_view.djapy_allowed_method = allowed_method_or_list
+         _wrapped_view.djapy_methods = allowed_method_or_list
       return _wrapped_view
 
    return decorator
