@@ -46,7 +46,6 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
             if isinstance(content, tuple):
                response.status_code = content[0]
             response.content = json.dumps(result, cls=DjangoJSONEncoder)
-            print(response.content)
             return response
 
          except Exception as exc:
