@@ -155,8 +155,8 @@ RequestDataParser = RequestParser
 ResponseDataParser = ResponseParser
 
 __all__ = [
-   'RequestDataParser',
-   'ResponseDataParser',
+   'RequestParser',
+   'ResponseParser',
    'AsyncRequestParser',
    'AsyncResponseParser',
    'get_response_schema_dict'
