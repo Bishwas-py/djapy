@@ -10,13 +10,13 @@ from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME,
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
-from .view_func import DjapyViewFunc
+from .view_func import ViewFuncT
 
 from ..schema.schema import get_json_dict
 
 
 class RequestDataParser:
-   def __init__(self, request: HttpRequest, view_func: DjapyViewFunc, view_kwargs):
+   def __init__(self, request: HttpRequest, view_func: ViewFuncT, view_kwargs):
       self.view_func = view_func
       self.view_kwargs = view_kwargs
       self.request = request

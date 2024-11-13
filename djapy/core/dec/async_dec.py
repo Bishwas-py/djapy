@@ -3,10 +3,11 @@ from functools import wraps
 from django.http import HttpRequest, HttpResponse
 from .base_dec import BaseDjapifyDecorator
 from ..parser import RequestDataParser
+from ..view_func import ViewFuncT
 
 
 class AsyncDjapifyDecorator(BaseDjapifyDecorator):
-   def __call__(self, view_func=None):
+   def __call__(self, view_func: ViewFuncT = None):
       if view_func is None:
          return lambda v: self.__call__(v)
 

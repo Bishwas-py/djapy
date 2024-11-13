@@ -134,7 +134,7 @@ class BaseDjapifyDecorator:
       else:
          data[param.name] = (annotation, default)
 
-   def _prepare(self, view_func: DjapyViewFunc) -> None:
+   def _prepare(self, view_func: ViewFuncT) -> None:
       """Prepare view function attributes"""
       view_func.djapy_req_params = self._get_params(view_func)
       view_func.djapy_resp_param = self._get_response_param(view_func.djapy_req_params)
