@@ -156,7 +156,6 @@ def get_schemas(view_func: callable, extra_query_dict: Dict = None):
         __base__=QueryMapperSchema
     )
 
-    print(data_schema_dict)
     schema_dict["data"] = create_model(
         REQUEST_INPUT_DATA_SCHEMA_NAME,
         **data_schema_dict,
