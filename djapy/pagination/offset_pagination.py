@@ -38,6 +38,8 @@ class OffsetLimitPagination(BasePagination):
             if not isinstance(queryset, QuerySet):
                 raise ValueError("The result should be a QuerySet")
 
+            print(info)
+            print(info.context)
             input_data = info.context['input_data']
             offset = input_data['offset']
             limit = input_data['limit']

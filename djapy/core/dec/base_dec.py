@@ -8,8 +8,8 @@ from django.http import HttpRequest, JsonResponse, HttpResponseBase
 from pydantic import ValidationError, create_model
 
 from djapy.core.auth import BaseAuthMechanism, base_auth_obj
+from djapy.core.d_types import Dyp
 from djapy.core.defaults import (
-   ALLOW_METHODS_LITERAL,
    DEFAULT_MESSAGE_ERROR,
    DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 )
@@ -33,10 +33,10 @@ ERROR_HANDLER_PREFIX = "handle_"
 class BaseDjapifyDecorator:
    def __init__(self,
                 view_func: Optional[Callable] = None,
-                method: Union[ALLOW_METHODS_LITERAL, List[ALLOW_METHODS_LITERAL]] = "GET",
+                method: Dyp.METHODS = "GET",
                 openapi: bool = True,
                 tags: List[str] = None,
-                auth: Optional[Union[Type[BaseAuthMechanism], BaseAuthMechanism]] = base_auth_obj):
+                auth: Dyp.AUTH = base_auth_obj):
       self.view_func = view_func
       self.method = method
       self.openapi = openapi
