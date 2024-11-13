@@ -22,9 +22,9 @@ from djapy.core.type_check import (
 from djapy.core.labels import (
    REQUEST_INPUT_DATA_SCHEMA_NAME,
    REQUEST_INPUT_QUERY_SCHEMA_NAME,
-   REQUEST_INPUT_FORM_SCHEMA_NAME, DJAPY_ALLOWED_METHOD, DJAPY_AUTH_MECHANISM
+   REQUEST_INPUT_FORM_SCHEMA_NAME, DJAPY_ALLOWED_METHOD, DJAPY_AUTH
 )
-from djapy.core.view_func import WrappedViewT, ViewFuncT, DjapyViewFunc
+from djapy.core.view_func import WrappedViewT, ViewFuncT
 from djapy.schema.schema import Schema, Form, QueryMapperSchema
 
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
@@ -34,13 +34,13 @@ ERROR_HANDLER_PREFIX = "handle_"
 class BaseDjapifyDecorator:
    def __init__(
      self,
-     view_func: Optional[Callable] = None,
+     view_func: WrappedViewT,
      method: dyp.methods = "GET",
      openapi: bool = True,
      tags: List[str] = None,
      auth: dyp.auth = base_auth_obj
    ):
-      self.view_func = view_func
+      self.view_func: WrappedViewT = view_func
       self.method = method
       self.openapi = openapi
       self.tags = tags
@@ -60,26 +60,23 @@ class BaseDjapifyDecorator:
          pass
       return handlers
 
-   def _check_access(self, request: HttpRequest, *args, **kwargs):
-      auth = getattr(self.view_func, DJAPY_AUTH_MECHANISM, None) or self.auth
-      methods = getattr(self.view_func, DJAPY_ALLOWED_METHOD, None)
-
-      if not auth:
-         auth = self.auth
-      auth_result = auth.authenticate(request, *args, **kwargs)
-      print(auth_result)
-      if auth_result:
-         return JsonResponse(auth_result[1], status=auth_result[0])
+   @staticmethod
+   def check_access(request: HttpRequest, w: WrappedViewT, *args, **kwargs) -> Optional[JsonResponse]:
+      methods = w.djapy_methods
       is_single = methods and isinstance(methods, str) and request.method != methods
       is_multiple = methods and request.method not in methods
       if is_single or is_multiple:
          return JsonResponse(DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
+      if not w.djapy_auth:
+         return None
+      if r := w.djapy_auth.authenticate(request, *args, **kwargs):
+         return JsonResponse(r[1], status=r[0])
 
    @staticmethod
    def _get_response(
      response: HttpResponseBase,
      content: Any,
-     schema: Dict[int, Union[Type[Schema], Type[Form]]],
+     schema: dyp.schema,
      request: HttpRequest,
      data: Dict[str, Any]
    ) -> HttpResponseBase:
@@ -134,11 +131,11 @@ class BaseDjapifyDecorator:
       else:
          data[param.name] = (annotation, default)
 
-   def _prepare(self, view_func: ViewFuncT) -> None:
+   def _prepare(self, w: WrappedViewT) -> None:
       """Prepare view function attributes"""
-      view_func.djapy_req_params = self._get_params(view_func)
-      view_func.djapy_resp_param = self._get_response_param(view_func.djapy_req_params)
-      module = self._get_module(view_func)
+      w.djapy_req_params = self._get_params(w)
+      w.djapy_resp_param = self._get_response_param(w.djapy_req_params)
+      module = self._get_module(w)
       self.app_auth = getattr(module, "AUTH_MECHANISM", None)
 
    @staticmethod
@@ -163,9 +160,9 @@ class BaseDjapifyDecorator:
       """Get view function module"""
       return inspect.getmodule(view_func)
 
-   def _get_auth(self, view_func: Callable) -> BaseAuthMechanism:
+   def _get_auth(self, view_func: ViewFuncT) -> BaseAuthMechanism:
       """Get auth mechanism for view"""
-      auth = getattr(view_func, DJAPY_AUTH_MECHANISM, None) or self.auth
+      auth = getattr(view_func, DJAPY_AUTH, None) or self.auth
 
       if auth == base_auth_obj and self.app_auth:
          handler = self.app_auth
@@ -213,17 +210,17 @@ class BaseDjapifyDecorator:
       logging.exception(exc)
       return JsonResponse(DEFAULT_MESSAGE_ERROR, status=500)
 
-   def _get_schemas(self, view_func: Callable) -> tuple[
+   def _get_schemas(self, w: WrappedViewT) -> tuple[
       Any, dict[str, Type[Schema | Form | QueryMapperSchema]]]:
       """Get request and response schemas"""
-      schemas = get_response_schema_dict(view_func)
-      queries = getattr(view_func, 'extra_query_dict', {}) or {}
+      schemas = get_response_schema_dict(w)
+      queries = getattr(w, 'extra_query_dict', {}) or {}
 
       query = {}
       data = {}
       form = {}
 
-      for param in view_func.djapy_req_params:
+      for param in w.djapy_req_params:
          if is_param_query_type(param):
             self._add_query(param, query)
          elif data_type := is_data_type(param):
@@ -248,23 +245,29 @@ class BaseDjapifyDecorator:
          )
       }
 
-      if hasattr(view_func, 'response_wrapper'):
-         status, wrapper = view_func.response_wrapper
+      if hasattr(w, 'response_wrapper'):
+         status, wrapper = w.response_wrapper
          if status in schemas:
             schemas[status] = wrapper[schemas[status]]
 
       return schemas, djapy_inp_schema
 
-   def _set_common_attributes(self, wrapped_view: WrappedViewT, view_func: ViewFuncT) -> None:
+   def _set_common_attributes(self, wf: WrappedViewT, vf: ViewFuncT) -> None:
       """Set common view attributes"""
-      self._prepare(view_func)
-      schemas, djapy_inp_schema = self._get_schemas(view_func)
+      self._prepare(vf)
+      schemas, djapy_inp_schema = self._get_schemas(vf)
 
-      wrapped_view.djapy = True
-      wrapped_view.openapi = self.openapi
-      wrapped_view.openapi_tags = self.tags or getattr(self._get_module(view_func), 'TAGS', [])
-      view_func.schema = wrapped_view.schema = schemas
-      wrapped_view.djapy_message_response = getattr(view_func, 'djapy_message_response', None)
-      view_func.djapy_inp_schema = wrapped_view.djapy_inp_schema = djapy_inp_schema
-      wrapped_view.djapy_auth = self._get_auth(view_func)
-      wrapped_view.djapy_methods = [self.method] if isinstance(self.method, str) else self.method
+      wf.djapy = True
+      wf.openapi = self.openapi
+      wf.openapi_tags = self.tags or getattr(self._get_module(vf), 'TAGS', [])
+      vf.schema = wf.schema = schemas
+      wf.djapy_message_response = getattr(vf, 'djapy_message_response', None)
+      vf.djapy_inp_schema = wf.djapy_inp_schema = djapy_inp_schema
+
+      # Set auth mechanism
+      wf.djapy_auth = self._get_auth(vf)
+      vf.djapy_auth = wf.djapy_auth
+
+      # Set allowed methods
+      wf.djapy_methods = [self.method] if isinstance(self.method, str) else self.method
+      vf.djapy_methods = wf.djapy_methods

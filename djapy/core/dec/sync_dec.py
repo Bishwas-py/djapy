@@ -1,14 +1,14 @@
 import json
 from functools import wraps
-from django.http import HttpRequest, JsonResponse, HttpResponse
+from django.http import HttpRequest, HttpResponse
 
 from .base_dec import BaseDjapifyDecorator
-from ..defaults import DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 from ..parser import RequestDataParser, ResponseDataParser
+from ..view_func import WrappedViewT
 
 
 class SyncDjapifyDecorator(BaseDjapifyDecorator):
-   def __call__(self, view_func=None):
+   def __call__(self, view_func: WrappedViewT = None):
       if view_func is None:
          return lambda v: self.__call__(v)
 
@@ -16,7 +16,7 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
       def wrapped_view(request: HttpRequest, *args, **kwargs):
          self._prepare(view_func)
 
-         if msg := self._check_access(request, *args, **kwargs):
+         if msg := self.check_access(request, view_func, *args, **kwargs):
             return msg
 
          try:

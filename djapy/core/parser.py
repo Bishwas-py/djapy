@@ -4,19 +4,20 @@ from pydantic import create_model, BaseModel, Json
 from django.http import HttpRequest
 
 from djapy.schema import Schema
+from .d_types import dyp
 from .response import create_validation_error
 from .labels import REQUEST_INPUT_DATA_SCHEMA_NAME, RESPONSE_OUTPUT_SCHEMA_NAME, JSON_OUTPUT_PARSE_NAME, \
    JSON_BODY_PARSE_NAME
 
 __all__ = ['RequestDataParser', 'ResponseDataParser', 'get_response_schema_dict']
 
-from .view_func import ViewFuncT
+from .view_func import WrappedViewT
 
 from ..schema.schema import get_json_dict
 
 
 class RequestDataParser:
-   def __init__(self, request: HttpRequest, view_func: ViewFuncT, view_kwargs):
+   def __init__(self, request: HttpRequest, view_func: WrappedViewT, view_kwargs):
       self.view_func = view_func
       self.view_kwargs = view_kwargs
       self.request = request
@@ -75,8 +76,14 @@ class RequestDataParser:
 
 class ResponseDataParser:
 
-   def __init__(self, status: int, data: Any, schemas: Dict[int, Union[Type[Schema], type]], request: HttpRequest,
-                input_data: Dict[str, Any] = None):
+   def __init__(
+     self,
+     status: int,
+     data: Any,
+     schemas: dyp.schema,
+     request: HttpRequest,
+     input_data: Dict[str, Any] = None
+   ):
       self.status = status
       self.data = data
       self.request = request

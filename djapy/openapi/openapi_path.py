@@ -11,8 +11,7 @@ from djapy.schema import Schema
 
 __all__ = ['OpenAPI_Path']
 
-from ..core.labels import DJAPY_AUTH_MECHANISM
-from ..core.view_func import DjapyViewFunc
+from ..core.view_func import WrappedViewT
 
 
 class OpenAPI_Path:
@@ -40,7 +39,7 @@ class OpenAPI_Path:
 
    def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
       self.parent_url_pattern = parent_url_pattern or []
-      self.view_func: DjapyViewFunc = url_pattern.callback
+      self.view_func: WrappedViewT = url_pattern.callback
       self.openapi_tags = getattr(self.view_func, 'openapi_tags', [])
       self.export_tags = None
       self.export_security_schemes = {}

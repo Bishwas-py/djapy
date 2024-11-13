@@ -3,11 +3,11 @@ from functools import wraps
 from django.http import HttpRequest, HttpResponse
 from .base_dec import BaseDjapifyDecorator
 from ..parser import RequestDataParser
-from ..view_func import ViewFuncT
+from ..view_func import WrappedViewT
 
 
 class AsyncDjapifyDecorator(BaseDjapifyDecorator):
-   def __call__(self, view_func: ViewFuncT = None):
+   def __call__(self, view_func: WrappedViewT = None):
       if view_func is None:
          return lambda v: self.__call__(v)
 
@@ -18,7 +18,7 @@ class AsyncDjapifyDecorator(BaseDjapifyDecorator):
       async def wrapped_view(request: HttpRequest, *args, **kwargs):
          self._prepare(view_func)
 
-         if msg := self._check_access(request, *args, **kwargs):
+         if msg := self.check_access(request, view_func, *args, **kwargs):
             return msg
 
          try:
