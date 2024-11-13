@@ -15,20 +15,10 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
 
       @wraps(view_func)
       def wrapped_view(request: HttpRequest, *args, **kwargs):
-         self._prepare_view(view_func)
+         self._prepare_view(wrapped_view)
 
-         # Auth checks
-         authentication_info = wrapped_view.auth_mechanism.authenticate(request, *args, **kwargs)
-         if authentication_info:
-            return JsonResponse(authentication_info[1], status=authentication_info[0])
-
-         authorization_info = wrapped_view.auth_mechanism.authorize(request, *args, **kwargs)
-         if authorization_info:
-            return JsonResponse(authorization_info[1], status=authorization_info[0])
-
-         # Method check
-         if request.method not in wrapped_view.djapy_allowed_method:
-            return JsonResponse(DEFAULT_METHOD_NOT_ALLOWED_MESSAGE, status=405)
+         if msg := self._is_blocked(request, *args, **kwargs):
+            return msg
 
          try:
             response = HttpResponse(content_type="application/json")
@@ -39,26 +29,14 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
                input_data[view_func.in_response_param.name] = response
 
             response_from_view = view_func(request, *args, **input_data)
-
-            if isinstance(response_from_view, HttpResponseBase):
-               return response_from_view
-
-            status_code, response_data = (response_from_view
-                                          if isinstance(response_from_view, tuple)
-                                          else (200, response_from_view))
-
-            response_parser = ResponseDataParser(
-               status_code, response_data, view_func.schema, request,
-               input_data
+            return self._parsed_response(
+               response,
+               response_from_view,
+               view_func.schema,
+               request, input_data
             )
-            parsed_data = response_parser.parse_response_data()
-
-            response.status_code = status_code
-            response.content = json.dumps(parsed_data)
-            return response
-
          except Exception as e:
-            return self._handle_error(request, e)
+            return self.handle_error(request, e)
 
       self._set_common_attributes(wrapped_view, view_func)
       return wrapped_view
