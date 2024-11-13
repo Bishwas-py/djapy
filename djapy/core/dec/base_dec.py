@@ -73,35 +73,6 @@ class BaseDjapifyDecorator:
          return JsonResponse(r[1], status=r[0])
 
    @staticmethod
-   def _get_response(
-     response: HttpResponseBase,
-     content: Any,
-     schema: dyp.schema,
-     request: HttpRequest,
-     data: Dict[str, Any]
-   ) -> HttpResponseBase:
-      if isinstance(content, HttpResponseBase):
-         return content
-
-      status, body = (
-         content if isinstance(content, tuple)
-         else (200, content)
-      )
-
-      parser = ResponseDataParser(
-         status,
-         body,
-         schema,
-         request,
-         data
-      )
-      result = parser.parse_response_data()
-
-      response.status_code = status
-      response.content = json.dumps(result)
-      return response
-
-   @staticmethod
    def _get_tuple(param: inspect.Parameter, annotation: Any = None) -> tuple:
       """Get tuple for pydantic model creation"""
       if annotation is None:

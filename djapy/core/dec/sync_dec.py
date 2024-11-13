@@ -1,9 +1,11 @@
 import json
 from functools import wraps
+
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpRequest, HttpResponse
 
 from .base_dec import BaseDjapifyDecorator
-from ..parser import RequestDataParser, ResponseDataParser
+from ..parser import RequestParser, ResponseParser
 from ..view_func import WrappedViewT
 
 
@@ -21,20 +23,32 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
 
          try:
             response = HttpResponse(content_type="application/json")
-            parser = RequestDataParser(request, view_func, kwargs)
-            data = parser.parse_request_data()
+
+            # Use sync request parser
+            req_p = RequestParser(request, view_func, kwargs)
+            data = req_p.parse_data()
 
             if view_func.djapy_resp_param:
                data[view_func.djapy_resp_param.name] = response
 
             content = view_func(request, *args, **data)
-            return self._get_response(
-               response,
-               content,
-               view_func.schema,
-               request,
-               data
+
+            # Use sync response parser
+            res_p = ResponseParser(
+               request=request,
+               status=200 if not isinstance(content, tuple) else content[0],
+               data=content if not isinstance(content, tuple) else content[1],
+               schemas=view_func.schema,
+               input_data=data
             )
+
+            result = res_p.parse_data()
+            if isinstance(content, tuple):
+               response.status_code = content[0]
+            response.content = json.dumps(result, cls=DjangoJSONEncoder)
+            print(response.content)
+            return response
+
          except Exception as exc:
             return self.handle_error(request, exc)
 
