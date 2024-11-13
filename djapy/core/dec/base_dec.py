@@ -13,7 +13,7 @@ from djapy.core.defaults import (
    DEFAULT_MESSAGE_ERROR,
    DEFAULT_METHOD_NOT_ALLOWED_MESSAGE
 )
-from djapy.core.parser import get_response_schema_dict, ResponseDataParser
+from djapy.core.parser import get_response_schema_dict
 from djapy.core.response import create_json_from_validation_error
 from djapy.core.type_check import (
    is_param_query_type,
