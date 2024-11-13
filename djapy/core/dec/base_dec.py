@@ -22,7 +22,8 @@ from djapy.core.type_check import (
 from djapy.core.labels import (
    REQUEST_INPUT_DATA_SCHEMA_NAME,
    REQUEST_INPUT_QUERY_SCHEMA_NAME,
-   REQUEST_INPUT_FORM_SCHEMA_NAME, DJAPY_ALLOWED_METHOD, DJAPY_AUTH
+   REQUEST_INPUT_FORM_SCHEMA_NAME,
+   DJAPY_AUTH
 )
 from djapy.core.view_func import WrappedViewT, ViewFuncT
 from djapy.schema.schema import Schema, Form, QueryMapperSchema
