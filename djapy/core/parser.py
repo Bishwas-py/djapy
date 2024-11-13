@@ -149,11 +149,6 @@ def get_response_schema_dict(view_func: WrappedViewT) -> dyp.schema:
    schema = view_func.__annotations__.get('return', None)
    return {200: schema} if not isinstance(schema, dict) else schema
 
-
-# For backwards compatibility
-RequestDataParser = RequestParser
-ResponseDataParser = ResponseParser
-
 __all__ = [
    'RequestParser',
    'ResponseParser',
