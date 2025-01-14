@@ -13,6 +13,8 @@ __all__ = ['OpenAPI_Path']
 
 
 class OpenAPI_Path:
+   URL_PARAM_PATTERN = re.compile(r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]')
+
    def set_docstrings(self):
       docstring = inspect.getdoc(self.view_func)
       if docstring:
@@ -66,22 +68,22 @@ class OpenAPI_Path:
       self.set_request_body()
 
    def set_request_body(self):
-      for schema in [self.view_func.input_schema["data"], self.view_func.input_schema["form"]]:
+      for schema in (self.view_func.input_schema["data"], self.view_func.input_schema["form"]):
          if single_schema := schema.single():
             schema = single_schema[1]
+
          prepared_schema = schema.model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+         if not prepared_schema.get("properties"):
+            continue
+
          if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
-         content = prepared_schema if prepared_schema["properties"] else {}
-         if content:
-            if not self.request_body.get("content"):
-               self.request_body["content"] = {schema.cvar_c_type: {"schema": content}}
-            if not self.request_body["content"].get(schema.cvar_c_type):
-               self.request_body["content"][schema.cvar_c_type] = {"schema": content}
-            if not self.request_body["content"][schema.cvar_c_type].get("schema"):
-               self.request_body["content"][schema.cvar_c_type]["schema"] = content
 
-            self.request_body["content"][schema.cvar_c_type]["schema"] = content
+         content_type = schema.cvar_c_type
+         if not self.request_body.get("content"):
+            self.request_body["content"] = {}
+
+         self.request_body["content"][content_type] = {"schema": prepared_schema}
 
    @staticmethod
    def make_parameters(name, schema, required, in_="query"):
@@ -93,55 +95,38 @@ class OpenAPI_Path:
       }
 
    def set_parameters(self):
-      self.set_parameters_from_parent_url_pattern()
-      self.set_parameters_from_required_params()
+      # Combine parameter setting logic from parent and required params
+      url_params = set()
 
-   def set_parameters_from_required_params(self):
-      prepared_query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-
-      if prepared_query_schema["properties"]:
-         # First, extract all URL path parameters from the URL pattern
-         pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
-         url_params = []
-         for match in re.finditer(pattern, str(self.url_pattern.pattern)):
-            url_params.append(match.group('name'))
-
-         for name, schema in prepared_query_schema["properties"].items():
-            if name in self.parameters_keys:
-               continue
-
-            # Check if this parameter name exists in URL path parameters
-            is_url_param = name in url_params
-            required_ = name in prepared_query_schema.get("required", [])
-
-            parameter = self.make_parameters(
-               name=name,
-               schema=schema,
-               required=required_,
-               in_="path" if is_url_param else "query"  # Changed param_type to in_
-            )
-
-            self.parameters_keys.append(name)
-            self.parameters.append(parameter)
-
-   def set_parameters_from_parent_url_pattern(self):
+      # Process parent URL patterns first
       for url_pattern in self.parent_url_pattern + [self.url_pattern]:
-         pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
-         if match := re.search(pattern, str(url_pattern.pattern)):
+         if match := self.URL_PARAM_PATTERN.search(str(url_pattern.pattern)):
             _type, name = match.groups()
-            schema = basic_query_schema(_type)
-            parameter = self.make_parameters(name, schema, True, "path")
-            self.parameters_keys.append(name)
-            self.parameters.append(parameter)
+            if name not in self.parameters_keys:
+               schema = basic_query_schema(_type)
+               self.parameters_keys.append(name)
+               self.parameters.append(self.make_parameters(name, schema, True, "path"))
+               url_params.add(name)
+
+      # Process query parameters
+      query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+      if query_schema.get("properties"):
+         for name, schema in query_schema["properties"].items():
+            if name not in self.parameters_keys:
+               required_ = name in query_schema.get("required", [])
+               is_url_param = name in url_params
+               self.parameters_keys.append(name)
+               self.parameters.append(self.make_parameters(
+                  name=name,
+                  schema=schema,
+                  required=required_,
+                  in_="path" if is_url_param else "query"
+               ))
 
    def set_path(self):
-      url_path_string = ""
-      for url_pattern in self.parent_url_pattern or []:
-         url_path_string += self.format_pattern(url_pattern)
-      url_path_string += self.format_pattern(self.url_pattern)
-      if not url_path_string.startswith('/'):
-         url_path_string = '/' + url_path_string
-      self.path = url_path_string
+      paths = [self.format_pattern(p) for p in (self.parent_url_pattern or []) + [self.url_pattern]]
+      url_path_string = ''.join(paths)
+      self.path = f"/{url_path_string.lstrip('/')}"
 
    @staticmethod
    def format_pattern(url_pattern: URLPattern) -> str:
@@ -158,25 +143,32 @@ class OpenAPI_Path:
 
    def set_responses(self):
       for status, schema in self.url_pattern.callback.schema.items():
-         description = ""
-         if schema_type(schema):
-            if isinstance(schema, Schema) and schema.Info.cvar_describe:
-               description = schema.Info.cvar_describe.get(status, "Unknown")
-         if not description:
-            description = self.make_description_from_status(status)
+         description = (isinstance(schema, Schema)
+                        and schema.Info.cvar_describe
+                        and schema.Info.cvar_describe.get(status)) \
+                       or self.make_description_from_status(status)
+
          response_model = create_model(
             'openapi_response_model',
-            **{'response': (schema, ...)},
+            response=(schema, ...),
             __base__=Schema
          )
 
-         prepared_schema = response_model.model_json_schema(ref_template=REF_MODAL_TEMPLATE, mode='serialization')
+         prepared_schema = response_model.model_json_schema(
+            ref_template=REF_MODAL_TEMPLATE,
+            mode='serialization'
+         )
+
          if "$defs" in prepared_schema:
             self.export_components.update(prepared_schema.pop("$defs"))
-         content = prepared_schema['properties']['response']
+
          self.responses[str(status)] = {
             "description": description,
-            "content": {"application/json": {"schema": content}}
+            "content": {
+               "application/json": {
+                  "schema": prepared_schema['properties']['response']
+               }
+            }
          }
 
    def dict(self):
