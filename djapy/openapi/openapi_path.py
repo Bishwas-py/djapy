@@ -98,16 +98,29 @@ class OpenAPI_Path:
 
    def set_parameters_from_required_params(self):
       prepared_query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
-      # possibly, this should be a property, no refs
+
       if prepared_query_schema["properties"]:
+         # First, extract all URL path parameters from the URL pattern
+         pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
+         url_params = []
+         for match in re.finditer(pattern, str(self.url_pattern.pattern)):
+            url_params.append(match.group('name'))
+
          for name, schema in prepared_query_schema["properties"].items():
             if name in self.parameters_keys:
                continue
-            # is_url_param = re.search(name, str(self.url_pattern.pattern)) # this patter is flawed
-            pattern = r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]'
-            is_url_param = re.search(pattern, str(self.url_pattern.pattern))
+
+            # Check if this parameter name exists in URL path parameters
+            is_url_param = name in url_params
             required_ = name in prepared_query_schema.get("required", [])
-            parameter = self.make_parameters(name, schema, required_, "path" if is_url_param else "query")
+
+            parameter = self.make_parameters(
+               name=name,
+               schema=schema,
+               required=required_,
+               in_="path" if is_url_param else "query"  # Changed param_type to in_
+            )
+
             self.parameters_keys.append(name)
             self.parameters.append(parameter)
 
