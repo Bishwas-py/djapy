@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
    name="djapy",
-   version="0.1.105-new",
+   version="0.1.105",
    description="Write powerful APIs with Django and Pydantic; I/O validation, Swagger/OpenAPI docs, and more.",
    long_description=long_description,
    long_description_content_type="text/markdown",
