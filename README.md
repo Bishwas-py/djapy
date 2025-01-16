@@ -9,7 +9,7 @@ be as simple as possible to use, while still being powerful enough to handle mos
 ```python
 @djapify
 def get_user(request) -> {200: UserSchema, 404: str}:
-    return request.user
+   return request.user
 ```
 
 > It's that simple!
