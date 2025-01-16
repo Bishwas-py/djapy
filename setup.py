@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
    name="djapy",
    version="0.1.105.dev1",
-   description="Write powerful APIs with Django and Pydantic; I/O validation, Swagger/OpenAPI docs, and more.",
+   description="Fast, zero-boilerplate Django REST API framework with pure Python typing!",
    long_description=long_description,
    long_description_content_type="text/markdown",
    url="https://github.com/Bishwas-py/djapy",
