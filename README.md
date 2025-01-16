@@ -1,4 +1,4 @@
-> No Zero-Boilerplate, just rapid Django API ⚡️
+> No Boilerplate, just rapid Django API ⚡️
 
 Write powerful Django APIs with minimal code. Djapy combines Django's robustness with modern API development practices,
 giving you a clean, intuitive way to build REST APIs.
