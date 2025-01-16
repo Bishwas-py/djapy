@@ -98,6 +98,7 @@ class ResponseDataParser:
 
     def parse_response_data(self) -> Dict[str, Any]:
         response_model = self.create_response_model()
+        if
         validated_obj = response_model.model_validate(
             {JSON_OUTPUT_PARSE_NAME: self.data},
             context={"request": self.request, "input_data": self.input_data}
