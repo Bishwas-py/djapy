@@ -270,12 +270,6 @@ def djapify(view_func: Callable = None,
                     parser = ResponseDataParser(status_code, response_data, schema_dict_returned, request, _input_data)
                     parsed_data = parser.parse_response_data()
 
-                response_parser = ResponseDataParser(
-                    status_code, response_data, schema_dict_returned, request,
-                    _input_data
-                )
-                parsed_data = response_parser.parse_response_data()
-
                 response.status_code = status_code
                 response.content = json.dumps(parsed_data, cls=DjangoJSONEncoder)
                 return response
