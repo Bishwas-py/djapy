@@ -97,8 +97,7 @@ class ResponseDataParser:
       return response_model
 
    def parse_response_data(self) -> Dict[str, Any]:
-      cur_schema = self.schemas.get(self.status)
-      if (cur_schema and isinstance(self.data, cur_schema)) or (isinstance(self.data, BaseModel)):
+      if isinstance(self.data, BaseModel):  # Direct return if Pydantic model
          return self.data.model_dump(mode="json", by_alias=True)
 
       response_model = self.create_response_model()
