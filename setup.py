@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
    name="djapy",
-   version="0.1.105.dev4",
+   version="0.2.0.dev0",
    description="Fast, zero-boilerplate Django REST API framework with pure Python typing!",
    long_description=long_description,
    long_description_content_type="text/markdown",
@@ -20,14 +20,16 @@ setup(
    },
    classifiers=[
       "Programming Language :: Python :: 3",
-      "Programming Language :: Python :: 3.6",
-      "Programming Language :: Python :: 3.7",
-      "Programming Language :: Python :: 3.9",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
       "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
       "Operating System :: OS Independent"
    ],
    install_requires=[
       "Django",
       "pydantic",
-   ]
+   ],
+   python_requires='>=3.6',
 )
