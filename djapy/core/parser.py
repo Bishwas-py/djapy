@@ -118,14 +118,18 @@ class ResponseParser(BaseParser):
          __base__=Schema
       )
 
-   def parse_data(self) -> Dict[str, Any]:
-      """Parse and validate response data."""
-      model = self._create_model()
-      validated = model.model_validate(
-         {JSON_OUTPUT_PARSE_NAME: self.data},
-         context={**self._context, "input_data": self.input_data}
-      )
-      return validated.model_dump(mode="json", by_alias=True)[JSON_OUTPUT_PARSE_NAME]
+
+def parse_data(self) -> Dict[str, Any]:
+   """Parse and validate response data."""
+   if isinstance(self.data, BaseModel):  # Direct return if Pydantic model
+      return self.data.model_dump(mode="json", by_alias=True)
+
+   model = self._create_model()
+   validated = model.model_validate(
+      {JSON_OUTPUT_PARSE_NAME: self.data},
+      context={**self._context, "input_data": self.input_data}
+   )
+   return validated.model_dump(mode="json", by_alias=True)[JSON_OUTPUT_PARSE_NAME]
 
 
 class AsyncRequestParser(RequestParser):
@@ -148,6 +152,7 @@ def get_response_schema_dict(view_func: WrappedViewT) -> dyp.schema:
    """Get view function's response schema."""
    schema = view_func.__annotations__.get('return', None)
    return {200: schema} if not isinstance(schema, dict) else schema
+
 
 __all__ = [
    'RequestParser',
