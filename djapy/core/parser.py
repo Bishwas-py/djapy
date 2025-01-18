@@ -118,18 +118,17 @@ class ResponseParser(BaseParser):
          __base__=Schema
       )
 
+   def parse_data(self) -> Dict[str, Any]:
+      """Parse and validate response data."""
+      if isinstance(self.data, BaseModel):  # Direct return if Pydantic model
+         return self.data.model_dump(mode="json", by_alias=True)
 
-def parse_data(self) -> Dict[str, Any]:
-   """Parse and validate response data."""
-   if isinstance(self.data, BaseModel):  # Direct return if Pydantic model
-      return self.data.model_dump(mode="json", by_alias=True)
-
-   model = self._create_model()
-   validated = model.model_validate(
-      {JSON_OUTPUT_PARSE_NAME: self.data},
-      context={**self._context, "input_data": self.input_data}
-   )
-   return validated.model_dump(mode="json", by_alias=True)[JSON_OUTPUT_PARSE_NAME]
+      model = self._create_model()
+      validated = model.model_validate(
+         {JSON_OUTPUT_PARSE_NAME: self.data},
+         context={**self._context, "input_data": self.input_data}
+      )
+      return validated.model_dump(mode="json", by_alias=True)[JSON_OUTPUT_PARSE_NAME]
 
 
 class AsyncRequestParser(RequestParser):
