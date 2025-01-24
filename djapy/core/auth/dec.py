@@ -1,5 +1,6 @@
 import inspect
 import json
+import asyncio
 from functools import wraps
 from typing import Dict, Callable, List, Type
 
@@ -21,17 +22,25 @@ def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
 
    def decorator(view_func):
       @wraps(view_func)
-      def _wrapped_view(request: HttpRequest, *args, **kwargs):
+      async def _wrapped_async_view(request: HttpRequest, *args, **kwargs):
+         return await view_func(request, *args, **kwargs)
+
+      @wraps(view_func)
+      def _wrapped_sync_view(request: HttpRequest, *args, **kwargs):
          return view_func(request, *args, **kwargs)
 
+      # Choose appropriate wrapper based on whether view is async
+      wrapped = _wrapped_async_view if asyncio.iscoroutinefunction(view_func) else _wrapped_sync_view
+
       if auth and inspect.isclass(auth) and issubclass(auth, BaseAuthMechanism):
-         _wrapped_view.djapy_auth = auth(permissions)
+         wrapped.djapy_auth = auth(permissions)
       else:
-         _wrapped_view.djapy_auth = auth
-      _wrapped_view.djapy_auth.set_message_response(msg)
+         wrapped.djapy_auth = auth
+      wrapped.djapy_auth.set_message_response(msg)
 
-      return _wrapped_view
+      return wrapped
 
+   # Handle case where decorator is used without parentheses
    if inspect.isfunction(auth):
       return decorator(auth)
 
@@ -50,15 +59,26 @@ def djapy_method(
 
    def decorator(view_func):
       @wraps(view_func)
-      def _wrapped_view(request: HttpRequest, *args, **kwargs):
+      async def _wrapped_async_view(request: HttpRequest, *args, **kwargs):
+         if request.method not in allowed_method_or_list:
+            view_func.djapy_message_response = message_response
+         return await view_func(request, *args, **kwargs)
+
+      @wraps(view_func)
+      def _wrapped_sync_view(request: HttpRequest, *args, **kwargs):
          if request.method not in allowed_method_or_list:
             view_func.djapy_message_response = message_response
          return view_func(request, *args, **kwargs)
 
+      # Choose appropriate wrapper based on whether view is async
+      wrapped = _wrapped_async_view if asyncio.iscoroutinefunction(view_func) else _wrapped_sync_view
+
+      # Set allowed methods
       if isinstance(allowed_method_or_list, str):
-         _wrapped_view.djapy_methods = [allowed_method_or_list]
+         wrapped.djapy_methods = [allowed_method_or_list]
       else:
-         _wrapped_view.djapy_methods = allowed_method_or_list
-      return _wrapped_view
+         wrapped.djapy_methods = allowed_method_or_list
+
+      return wrapped
 
    return decorator
