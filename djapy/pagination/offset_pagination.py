@@ -41,8 +41,9 @@ class OffsetLimitPagination(BasePagination):
          input_data = info.context['input_data']
          offset = input_data['offset']
          limit = input_data['limit']
+         count = queryset.count()
 
-         if len(queryset) == 0 or offset > len(queryset):
+         if count == 0 or offset > count:
             return {
                "items": [],
                "offset": offset,
@@ -58,7 +59,7 @@ class OffsetLimitPagination(BasePagination):
             "items": queryset_subset,
             "offset": offset,
             "limit": limit,
-            "has_next": len(queryset_subset) == limit,
+            "has_next": queryset_subset.count() == limit,
             "has_previous": offset > 0,
-            "total_pages": int(math.ceil(len(queryset) / limit)),
+            "total_pages": math.ceil(count / limit),
          }

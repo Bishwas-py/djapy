@@ -4,45 +4,50 @@ Write powerful Django APIs with minimal code. Djapy combines Django's robustness
 giving you a clean, intuitive way to build REST APIs.
 
 [![PyPI version](https://badge.fury.io/py/djapy.svg)](https://badge.fury.io/py/djapy)
-[![Python Versions](https://img.shields.io/pypi/pyversions/djapy.svg)](https://pypi.org/project/djapy/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/djapy.svg)](https://pypi.org/project/djapy)
 [![Django Versions](https://img.shields.io/badge/django-3.2%20%7C%204.0%20%7C%204.1%20%7C%204.2-blue)](https://github.com/Bishwas-py/djapy)
 [![Downloads](https://static.pepy.tech/badge/djapy)](https://pepy.tech/project/djapy)
 
 ```python
 @djapify
-def get_user(request, user_id: int) -> UserSchema:
-   return User.objects.get(id=user_id)
+def get_user(request, username: str) -> UserSchema:
+   return User.objects.get(username=username)
 ```
+
+That's it. No serializers, no viewsets, no boilerplate - just pure Python.
 
 ## ✨ Why Djapy?
 
+Write Django REST APIs that are simple by default, powerful when needed. Djapy works seamlessly with Django's ecosystem
+while adding modern API features.
+
 ```python
-from djapy import djapify, Schema
-
-
-class UserOut(BaseModel):
-   id: int
-   username: str
-   is_active: bool
-
-
+# Works perfectly with Django decorators
+@cache_page(BASIC_CACHE_1_HOUR)
 @djapify
-def get_users(request) -> list[UserOut]:
-   return User.objects.filter(is_active=True)
-```
+def get_posts(request, search: Optional[str] = None) -> List[PostSchema]:
+   posts = Post.objects.all()
+   if search:
+      posts = posts.filter(title__icontains=search)
+   return posts
 
-Write Django REST APIs in pure Python. No serializers, no viewsets, no boilerplate,
-no external url routers - just clean, typed, and maintainable code.
+
+# Need async? Just use async_djapify
+@async_djapify
+@paginate
+async def get_comments(request, post_id: int) -> List[CommentSchema]:
+   return await Comment.objects.filter(post_id=post_id).aall()
+```
 
 ## 🚀 Key Features
 
-- **Zero Boilerplate**: Build APIs with pure Python and Django
-- **Type Safety**: Full Python type hints support
-- **Modern Validation**: Built-in Pydantic integration
-- **Hyperfast Performance**: Optimized for speed
-- **Django Compatible**: Works with any Django project
+- **Zero Boilerplate**: Build APIs with pure Python
+- **Django Native**: Works seamlessly with Django's decorators and features
+- **Type Safety**: Full Python type hints with Pydantic
+- **Async When You Need It**: Optional async support for high-performance endpoints
+- **Smart Authentication**: Simple session auth, customizable when needed
 - **OpenAPI Support**: Automatic Swagger documentation
-- **IDE Friendly**: Full intellisense, endpoints (PyCharm) and type support
+- **IDE Friendly**: Full intellisense support
 
 ## 🎯 Quick Start
 
@@ -56,95 +61,104 @@ pip install djapy
 
 ```python
 from djapy import djapify, Schema
-from django.contrib.auth.models import User
 
 
-class UserSchema(Schema):
-   id: int
-   username: str
-   email: str
-
-
-@djapify
-def list_users(request) -> list[UserSchema]:
-   return User.objects.all()
+class PostSchema(Schema):
+   title: str
+   body: str
+   author: str
 
 
 @djapify
-def get_user(request, user_id: int) -> {200: UserSchema, 404: str}:
-   try:
-      return User.objects.get(id=user_id)
-   except User.DoesNotExist:
-      return "User not found", 404
-```
+def create_post(request, data: PostSchema) -> {201: PostSchema}:
+   post = Post.objects.create(**data.dict())
+   return 201, post
 
-3. **Add to URLs**
 
-```python
-from django.urls import path
-
-urlpatterns = [
-   path('users/', list_users),
-   path('users/<int:user_id>/', get_user),
-]
+# Want caching? Use Django's cache_page
+@cache_page(3600)
+@djapify
+def get_post(request, post_id: int) -> PostSchema:
+   return Post.objects.get(id=post_id)
 ```
 
 ## 🔥 Core Features
 
-### 1. Native Type System
+### 1. Simple by Default, Powerful When Needed
 
 ```python
-from typing import Optional
-from djapy import djapify, Schema
-from djapy.pagination import paginate
-
-
-class UserFilter(Schema):
-   search: Optional[str]
-   is_active: bool = True
-
-
+# Simple endpoint
 @djapify
+def get_tag(request, tag_slug: str) -> TagSchema:
+   return Tags.objects.get(slug=tag_slug)
+
+
+# Need more power? Add async and pagination
+@async_djapify
 @paginate
-def search_users(request, filters: UserFilter) -> list[Schema]:
-   queryset = User.objects.filter(is_active=filters.is_active)
-   if filters.search:
-      queryset = queryset.filter(username__icontains=filters.search)
-   return queryset
+async def get_tag_posts(request, tag_slug: str) -> List[PostSchema]:
+   tag = await Tags.objects.aget(slug=tag_slug)
+   return await tag.posts.aall()
 ```
 
-### 2. Smart Request Handling
+### 2. Works with Django's Ecosystem
+
+```python
+from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import csrf_exempt
+
+
+@cache_page(3600)
+@csrf_exempt
+@djapify(method="POST")
+def create_user(request, data: UserSchema) -> {201: UserSchema}:
+   user = User.objects.create(**data.dict())
+   return 201, user
+```
+
+### 3. Simple Authentication
+
+```python
+@djapify(auth=SessionAuth)
+def get_profile(request) -> ProfileSchema:
+   return request.user.profile
+
+
+# Need custom auth messages?
+@djapify(auth=SessionAuth, msg={
+   "message": "Please log in first",
+   "redirect": "/login"
+})
+def protected_view(request) -> ProtectedSchema:
+   return {"data": "secret"}
+```
+
+### 4. Type-Safe Responses
 
 ```python
 @djapify
-def create_user(request, data: UserCreate, team_id: int) -> {201: UserSchema}:
-   # Automatic validation and parsing
-   return 201, User.objects.create(**data.dict())
+def get_post(request, post_id: int) -> {
+   200: PostSchema,
+   404: MessageSchema
+}:
+   try:
+      return Post.objects.get(id=post_id)
+   except Post.DoesNotExist:
+      return 404, {
+         "message": "Post not found",
+         "type": "error"
+      }
 ```
-
-Learn more about type system and requests, [here](https://djapy.io/usage/request/).
-
-### 3. Error Handling
-
-```python
-@djapify
-def make_payment(request, amount: float) -> {200: PaymentSchema}:
-   if request.user.balance < amount:
-      raise MessageException("Insufficient balance")
-   return Payment.objects.create(user=request.user, amount=amount)
-```
-
-More about error handling, [here](https://djapy.io/usage/error-handling/).
 
 ## 🔄 Migration from DRF
 
-| DRF Concept | Djapy Equivalent                     |
-|-------------|--------------------------------------|
-| ViewSets    | Function-based views with `@djapify` |
-| Serializers | Pydantic models                      |
-| Permissions | Python decorators                    |
-| Filters     | Query parameters                     |
-| Pagination  | Built-in pagination helpers          |
+| DRF Concept | Djapy Equivalent                      |
+|-------------|---------------------------------------|
+| ViewSets    | Simple function views with `@djapify` |
+| Serializers | Pydantic Schema models                |
+| Permissions | Built-in auth system                  |
+| Filters     | Native Python parameters              |
+| Pagination  | `@paginate` decorator                 |
 
 ## 📚 Documentation
 
@@ -153,6 +167,6 @@ Visit [djapy.io](https://djapy.io) for comprehensive documentation.
 ## 🤝 Community & Support
 
 - 📖 [Documentation](https://djapy.io)
-- 💬 [Community](https://webmatrices.com/tag/django)
+- 💬 [Community](https://webmatrices.com/tags/django)
 - 🐛 [Issue Tracker](https://github.com/Bishwas-py/djapy/issues)
 - 📦 [PyPI](https://pypi.org/project/djapy)

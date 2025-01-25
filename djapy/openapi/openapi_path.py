@@ -11,6 +11,8 @@ from djapy.schema import Schema
 
 __all__ = ['OpenAPI_Path']
 
+from ..core.view_func import WrappedViewT
+
 
 class OpenAPI_Path:
    URL_PARAM_PATTERN = re.compile(r'[<](?:(?P<type>\w+?):)?(?P<name>\w+)[>]')
@@ -34,12 +36,12 @@ class OpenAPI_Path:
       self.tags = explicit_tags
 
    def set_security(self):
-      self.security.append(self.view_func.auth_mechanism.app_schema())
-      self.export_security_schemes.update(self.view_func.auth_mechanism.schema())  # AuthMechanism.schema
+      self.security.append(self.view_func.djapy_auth.app_schema())
+      self.export_security_schemes.update(self.view_func.djapy_auth.schema())  # AuthMechanism.schema
 
    def __init__(self, url_pattern: URLPattern, parent_url_pattern: list[URLPattern] = None):
       self.parent_url_pattern = parent_url_pattern or []
-      self.view_func = url_pattern.callback
+      self.view_func: WrappedViewT = url_pattern.callback
       self.openapi_tags = getattr(self.view_func, 'openapi_tags', [])
       self.export_tags = None
       self.export_security_schemes = {}
@@ -53,7 +55,7 @@ class OpenAPI_Path:
       self.url_pattern = url_pattern
 
       self.operation_id = f"{self.view_func.__module__}.{self.view_func.__name__}"
-      self.methods = url_pattern.callback.djapy_allowed_method
+      self.methods = url_pattern.callback.djapy_methods
       self.parameters_keys = []
       self.request_body = {}
       self.responses = {}
@@ -68,7 +70,7 @@ class OpenAPI_Path:
       self.set_request_body()
 
    def set_request_body(self):
-      for schema in (self.view_func.input_schema["data"], self.view_func.input_schema["form"]):
+      for schema in (self.view_func.djapy_inp_schema["data"], self.view_func.djapy_inp_schema["form"]):
          if single_schema := schema.single():
             schema = single_schema[1]
 
@@ -109,7 +111,7 @@ class OpenAPI_Path:
                url_params.add(name)
 
       # Process query parameters
-      query_schema = self.view_func.input_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
+      query_schema = self.view_func.djapy_inp_schema["query"].model_json_schema(ref_template=REF_MODAL_TEMPLATE)
       if query_schema.get("properties"):
          for name, schema in query_schema["properties"].items():
             if name not in self.parameters_keys:
