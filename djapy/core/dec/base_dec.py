@@ -17,7 +17,7 @@ from djapy.core.parser import get_response_schema_dict
 from djapy.core.response import create_json_from_validation_error
 from djapy.core.type_check import (
    is_param_query_type,
-   is_data_type
+   is_data_type, is_payload_type
 )
 from djapy.core.labels import (
    REQUEST_INPUT_DATA_SCHEMA_NAME,
@@ -76,9 +76,12 @@ class BaseDjapifyDecorator:
    @staticmethod
    def _get_tuple(param: inspect.Parameter, annotation: Any = None) -> tuple:
       """Get tuple for pydantic model creation"""
-      if annotation is None:
-         annotation = param.annotation
-      return (annotation, ...) if param.default is inspect.Parameter.empty else (annotation, param.default)
+      annotation = annotation or param.annotation
+      default = ... if param.default is inspect.Parameter.empty else param.default
+
+      if payload := is_payload_type(annotation):
+         return payload.unquery_type, default, payload.cvar_c_type
+      return annotation, default, None
 
    def _add_query(self, param: inspect.Parameter, queries: Dict) -> None:
       """Add query parameter to schema dictionary"""
@@ -92,13 +95,12 @@ class BaseDjapifyDecorator:
    def _add_content(self, param: inspect.Parameter, forms: Dict,
                     data: Dict, data_type: Any) -> None:
       """Add content type to appropriate schema"""
-      annotation, default = self._get_tuple(param, data_type)
-      has_type = hasattr(annotation, 'cvar_c_type')
+      annotation, default, cvar_c_type = self._get_tuple(param, data_type)
 
-      if has_type:
-         if annotation.cvar_c_type == "application/x-www-form-urlencoded":
+      if cvar_c_type:
+         if cvar_c_type == "application/x-www-form-urlencoded":
             forms[param.name] = (annotation, default)
-         elif annotation.cvar_c_type == "application/json":
+         elif cvar_c_type == "application/json":
             data[param.name] = (annotation, default)
       else:
          data[param.name] = (annotation, default)

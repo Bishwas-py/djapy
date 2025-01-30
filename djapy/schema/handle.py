@@ -48,6 +48,7 @@ class ReSchema:
 
 class Payload:
    unquery_type: G_TYPE | None = None
+   cvar_c_type = 'application/json'
 
    def __call__(self, type_: G_TYPE) -> G_TYPE:
       """

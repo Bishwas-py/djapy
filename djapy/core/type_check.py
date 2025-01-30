@@ -121,6 +121,9 @@ def is_data_type(param: Parameter):
    """
    if is_django_type(param):
       return None
-   if isinstance(param.annotation, djapy.schema.handle.Payload):
-      return param.annotation.unquery_type
    return param.annotation
+
+
+def is_payload_type(param: Parameter) -> djapy.schema.handle.Payload | None:
+   if isinstance(param.annotation, djapy.schema.handle.Payload):
+      return param.annotation
