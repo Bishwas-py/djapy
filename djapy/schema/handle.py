@@ -1,7 +1,7 @@
 __all__ = ['payload', 'uni_schema', 'status_codes']
 
 from http.client import responses
-from typing import Type, TypedDict
+from typing import Type, TypedDict, Literal
 
 from .schema import Schema
 from djapy.core.typing_utils import G_TYPE
@@ -48,7 +48,10 @@ class ReSchema:
 
 class Payload:
    unquery_type: G_TYPE | None = None
-   cvar_c_type = 'application/json'
+
+   def __init__(self,
+                cvar_c_type: Literal["application/json", "application/x-www-form-urlencoded"] = "application/json"):
+      self.cvar_c_type = cvar_c_type
 
    def __call__(self, type_: G_TYPE) -> G_TYPE:
       """
@@ -59,5 +62,7 @@ class Payload:
 
 
 payload = Payload()
+form = Payload("application/x-www-form-urlencoded")
+
 uni_schema = ReSchema()  # uni_schema is short for unified schema
 status_codes = StatusCodes()
