@@ -1,4 +1,4 @@
-__all__ = ['payload', 'form', 'uni_schema', 'status_codes']
+__all__ = ['as_json', 'as_form', 'uni_schema', 'status_codes']
 
 from http.client import responses
 from typing import Type, TypedDict, Literal
@@ -61,8 +61,8 @@ class Payload:
       return self
 
 
-payload = Payload()
-form = Payload("application/x-www-form-urlencoded")
+as_json = Payload()
+as_form = Payload("application/x-www-form-urlencoded")
 
 uni_schema = ReSchema()  # uni_schema is short for unified schema
 status_codes = StatusCodes()
