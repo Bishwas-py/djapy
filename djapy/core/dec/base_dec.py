@@ -17,7 +17,7 @@ from djapy.core.parser import get_response_schema_dict
 from djapy.core.response import create_json_from_validation_error
 from djapy.core.type_check import (
    is_param_query_type,
-   is_data_type, is_payload_type
+   is_data_type
 )
 from djapy.core.labels import (
    REQUEST_INPUT_DATA_SCHEMA_NAME,
@@ -26,6 +26,7 @@ from djapy.core.labels import (
    DJAPY_AUTH
 )
 from djapy.core.view_func import WrappedViewT, ViewFuncT
+from djapy.schema.handle import is_payload_type
 from djapy.schema.schema import Schema, Form, QueryMapperSchema
 
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
@@ -76,12 +77,9 @@ class BaseDjapifyDecorator:
    @staticmethod
    def _get_tuple(param: inspect.Parameter, annotation: Any = None) -> tuple:
       """Get tuple for pydantic model creation"""
-      annotation = annotation or param.annotation
-      default = ... if param.default is inspect.Parameter.empty else param.default
-
-      if payload := is_payload_type(annotation):
-         return payload.unquery_type, default, payload.cvar_c_type
-      return annotation, default, None
+      if annotation is None:
+         annotation = param.annotation
+      return (annotation, ...) if param.default is inspect.Parameter.empty else (annotation, param.default)
 
    def _add_query(self, param: inspect.Parameter, queries: Dict) -> None:
       """Add query parameter to schema dictionary"""
@@ -92,18 +90,40 @@ class BaseDjapifyDecorator:
          )
       queries[param.name] = self._get_tuple(param)
 
-   def _add_content(self, param: inspect.Parameter, forms: Dict,
-                    data: Dict, data_type: Any) -> None:
-      """Add content type to appropriate schema"""
-      annotation, default, cvar_c_type = self._get_tuple(param, data_type)
+   def _add_content(
+     self,
+     param: inspect.Parameter,
+     forms: Dict,
+     data: Dict,
+     data_type: Any
+   ) -> None:
+      """
+      Add content type to appropriate schema based on parameter annotation.
 
-      if cvar_c_type:
-         if cvar_c_type == "application/x-www-form-urlencoded":
-            forms[param.name] = (annotation, default)
-         elif cvar_c_type == "application/json":
-            data[param.name] = (annotation, default)
+      Args:
+          param: The parameter to analyze
+          forms: Dictionary to store form-encoded parameters
+          data: Dictionary to store JSON parameters
+          data_type: The type annotation for the parameter
+      """
+      annotation, default = self._get_tuple(param, data_type)
+
+      # Determine content type from payload or annotation
+      if payload := is_payload_type(annotation):
+         content_type = payload.cvar_c_type
+         annotation = payload.unquery_type
+         print('unquerytype', annotation)
       else:
+         content_type = getattr(annotation, 'cvar_c_type', None)
+
+      # Route parameter to appropriate schema based on content type
+      if content_type == "application/x-www-form-urlencoded":
+         print(annotation, default)
+         forms[param.name] = (annotation, default)
+      elif content_type == "application/json":
          data[param.name] = (annotation, default)
+      else:
+         data[param.name] = (annotation, default)  # Default to JSON
 
    def _prepare(self, w: WrappedViewT) -> None:
       """Prepare view function attributes"""

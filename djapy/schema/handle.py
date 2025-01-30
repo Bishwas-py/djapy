@@ -1,6 +1,7 @@
-__all__ = ['as_json', 'as_form', 'uni_schema', 'status_codes']
+__all__ = ['as_json', 'as_form', 'uni_schema', 'status_codes', 'is_payload_type']
 
 from http.client import responses
+from inspect import Parameter
 from typing import Type, TypedDict, Literal
 
 from .schema import Schema
@@ -59,6 +60,11 @@ class Payload:
       """
       self.unquery_type = type_
       return self
+
+
+def is_payload_type(param: Parameter) -> Payload | None:
+   if param and isinstance(param, Payload):
+      return param
 
 
 as_json = Payload()
