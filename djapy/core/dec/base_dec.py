@@ -112,13 +112,11 @@ class BaseDjapifyDecorator:
       if payload := is_payload_type(annotation):
          content_type = payload.cvar_c_type
          annotation = payload.unquery_type
-         print('unquerytype', annotation)
       else:
          content_type = getattr(annotation, 'cvar_c_type', None)
 
       # Route parameter to appropriate schema based on content type
       if content_type == "application/x-www-form-urlencoded":
-         print(annotation, default)
          forms[param.name] = (annotation, default)
       elif content_type == "application/json":
          data[param.name] = (annotation, default)
