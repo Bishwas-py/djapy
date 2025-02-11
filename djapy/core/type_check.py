@@ -6,8 +6,6 @@ from typing import Union, get_args, get_origin, Literal, List, Optional, Annotat
 from django.http import HttpResponseBase
 from pydantic import BaseModel
 
-import djapy.schema.handle
-
 BASIC_TYPES = {
    "str": "string",
    "int": "integer",
@@ -121,6 +119,4 @@ def is_data_type(param: Parameter):
    """
    if is_django_type(param):
       return None
-   if isinstance(param.annotation, djapy.schema.handle.Payload):
-      return param.annotation.unquery_type
    return param.annotation
