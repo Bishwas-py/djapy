@@ -171,14 +171,21 @@ def is_typing_type(annotation) -> bool:
    return False
 
 
-def parse_tuple_annotation(annotation) -> Dict[int, Type]:
-   """Parse tuple return type annotations into status code -> schema mapping.
+def prepare_schema(raw_schema: Dict[int, Type] | Any) -> Dict[int, Type]:
+   """Prepare schema for response parsing."""
+   if isinstance(raw_schema, dict):
+      return raw_schema
+   return {200: raw_schema}
 
-   Handles both single tuples and unions of tuples:
-   Tuple[201, PostSchema] -> {201: PostSchema}
-   Tuple[200, bool] | Tuple[400, Message] -> {200: bool, 400: Message}
-   Also handles direct typing `types` like List[Schema], Dict[str, int], Any
-   """
+
+def parse_tuple_annotation(annotation) -> Dict[int, Type]:
+   """Parse return type annotations into status code -> schema mapping."""
+   # First try prepare_schema for simple cases
+   if not (get_origin(annotation) in (Union, tuple) or
+           is_typing_type(annotation) or
+           schema_type(annotation)):
+      return prepare_schema(annotation)
+
    schemas = {}
 
    # Handle union of tuples case
@@ -191,7 +198,10 @@ def parse_tuple_annotation(annotation) -> Dict[int, Type]:
    if get_origin(annotation) is tuple:
       args = get_args(annotation)
       if len(args) != 2:
-         raise ValueError("Tuple return types must have exactly 2 elements: (status_code, schema)")
+         raise ValueError(
+            "Tuple return types must have "
+            "exactly 2 elements: (status_code, schema)"
+         )
 
       status_code = args[0]
       if not isinstance(status_code, int):
@@ -203,17 +213,11 @@ def parse_tuple_annotation(annotation) -> Dict[int, Type]:
       schemas[status_code] = args[1]
       return schemas
 
+   # Handle typing types and schema types
    if is_typing_type(annotation) or schema_type(annotation):
-      schemas[200] = annotation
+      return prepare_schema(annotation)
 
    return schemas
-
-
-def prepare_schema(raw_schema: Dict[int, Type] | Any) -> Dict[int, Type]:
-   """Prepare schema for response parsing."""
-   if isinstance(raw_schema, dict):
-      return raw_schema
-   return {200: raw_schema}
 
 
 def get_response_schema_dict(view_func) -> Dict[int, Type]:
@@ -228,8 +232,7 @@ def get_response_schema_dict(view_func) -> Dict[int, Type]:
       return schema
 
    try:
-      raw_schema = parse_tuple_annotation(schema)
-      return prepare_schema(raw_schema)
+      return parse_tuple_annotation(schema)
    except (ValueError, AttributeError) as e:
       raise ValueError(
          f"Invalid return type annotation. Must be either a dict "
