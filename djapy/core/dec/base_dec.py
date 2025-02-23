@@ -110,7 +110,6 @@ class BaseDjapifyDecorator:
 
       # Determine content type from payload or annotation
       if payload := is_payload_type(annotation):
-         print('payload', payload)
          content_type = payload.cvar_c_type
          annotation = payload.unquery_type
       else:

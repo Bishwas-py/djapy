@@ -211,7 +211,6 @@ def parse_tuple_annotation(annotation) -> Dict[int, Type]:
 
 def prepare_schema(raw_schema: Dict[int, Type] | Any) -> Dict[int, Type]:
    """Prepare schema for response parsing."""
-   print('raw_schema', raw_schema)
    if isinstance(raw_schema, dict):
       return raw_schema
    return {200: raw_schema}
@@ -227,7 +226,6 @@ def get_response_schema_dict(view_func) -> Dict[int, Type]:
 
    if isinstance(schema, dict):
       return schema
-   print('schema', schema)
 
    try:
       raw_schema = parse_tuple_annotation(schema)
