@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, Type, Optional
+from typing import Dict, Any, Union, Type, Optional, get_origin, get_args
 from abc import ABC, abstractmethod
 
 from asgiref.sync import sync_to_async
@@ -147,10 +147,55 @@ class AsyncResponseParser(ResponseParser):
       return await sync_to_async(super().parse_data)()
 
 
-def get_response_schema_dict(view_func: WrappedViewT) -> dyp.schema:
-   """Get view function's response schema."""
-   schema = view_func.__annotations__.get('return', None)
-   return {200: schema} if not isinstance(schema, dict) else schema
+def parse_tuple_annotation(annotation) -> Dict[int, Type]:
+   """Parse tuple return type annotations into status code -> schema mapping.
+
+   Handles both single tuples and unions of tuples:
+   Tuple[201, PostSchema] -> {201: PostSchema}
+   Tuple[200, bool] | Tuple[400, Message] -> {200: bool, 400: Message}
+   """
+   schemas = {}
+
+   # Handle union of tuples case
+   if get_origin(annotation) is Union:
+      for tuple_type in get_args(annotation):
+         schemas.update(parse_tuple_annotation(tuple_type))
+      return schemas
+
+   # Handle single tuple case
+   if get_origin(annotation) is tuple:
+      args = get_args(annotation)
+      if len(args) != 2:
+         raise ValueError("Tuple return types must have exactly 2 elements: (status_code, schema)")
+
+      status_code = args[0]
+      if not isinstance(status_code, int):
+         if hasattr(status_code, "__supertype__") and isinstance(status_code.__supertype__, int):
+            status_code = status_code.__supertype__
+         else:
+            raise ValueError(f"First tuple element must be an integer status code, got {status_code}")
+
+      schemas[status_code] = args[1]
+
+   return schemas
+
+
+def get_response_schema_dict(view_func) -> Dict[int, Type]:
+   """Get response schema from view function return annotation.
+   Handles both dictionary and tuple formats."""
+   schema = view_func.__annotations__.get('return')
+
+   if schema is None:
+      return {}
+
+   if isinstance(schema, dict):
+      return schema
+
+   try:
+      return parse_tuple_annotation(schema)
+   except (ValueError, AttributeError) as e:
+      raise ValueError(
+         f"Invalid return type annotation. Must be either a dict mapping status codes to schemas, or a Tuple/Union of Tuples. Error: {str(e)}")
 
 
 __all__ = [

@@ -1,9 +1,16 @@
 import inspect
-from typing import Literal, List, Union, Optional, Type, Dict
+from typing import Literal, List, Union, Optional, Type, Dict, TypeAlias, Tuple, Any
 
 from djapy.schema.schema import Schema, Form, QueryMapperSchema
 
 from .auth.auth import BaseAuthMechanism
+
+ResponseDict: TypeAlias = Dict[int, Type[Union[Schema, Form]]]
+ResponseTuple: TypeAlias = Union[
+    Tuple[int, Any],  # Single tuple response
+    Union[Tuple[int, Any], ...]  # Union of tuple responses
+]
+ResponseType: TypeAlias = Union[ResponseDict, ResponseTuple]
 
 
 class dyp:
