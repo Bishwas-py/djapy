@@ -1,4 +1,8 @@
-from typing import Dict, Any, Union, Type, Optional, get_origin, get_args
+import inspect
+import types
+import typing
+from multiprocessing.spawn import prepare
+from typing import Dict, Any, Union, Type, Optional, get_origin, get_args, Generic
 from abc import ABC, abstractmethod
 
 from asgiref.sync import sync_to_async
@@ -10,11 +14,12 @@ from djapy.schema import Schema
 from .d_types import dyp
 from .response import create_validation_error
 from .labels import (
-   REQUEST_INPUT_DATA_SCHEMA_NAME,
    RESPONSE_OUTPUT_SCHEMA_NAME,
    JSON_OUTPUT_PARSE_NAME,
-   JSON_BODY_PARSE_NAME
+   # REQUEST_INPUT_DATA_SCHEMA_NAME,
+   # JSON_BODY_PARSE_NAME
 )
+from .type_check import schema_type
 from .view_func import WrappedViewT
 from ..schema.schema import get_json_dict
 
@@ -147,12 +152,32 @@ class AsyncResponseParser(ResponseParser):
       return await sync_to_async(super().parse_data)()
 
 
+def is_typing_type(annotation) -> bool:
+   """
+   Reliably detect if an annotation is a typing type (List, Dict, Any, Union, etc.)
+   """
+   if annotation is None:
+      return False
+
+   if annotation in (Any, Union):
+      return True
+
+   if isinstance(annotation, types.UnionType):
+      return True
+
+   if isinstance(annotation, typing._GenericAlias):  # noqa
+      return True
+
+   return False
+
+
 def parse_tuple_annotation(annotation) -> Dict[int, Type]:
    """Parse tuple return type annotations into status code -> schema mapping.
 
    Handles both single tuples and unions of tuples:
    Tuple[201, PostSchema] -> {201: PostSchema}
    Tuple[200, bool] | Tuple[400, Message] -> {200: bool, 400: Message}
+   Also handles direct typing `types` like List[Schema], Dict[str, int], Any
    """
    schemas = {}
 
@@ -176,8 +201,20 @@ def parse_tuple_annotation(annotation) -> Dict[int, Type]:
             raise ValueError(f"First tuple element must be an integer status code, got {status_code}")
 
       schemas[status_code] = args[1]
+      return schemas
+
+   if is_typing_type(annotation) or schema_type(annotation):
+      schemas[200] = annotation
 
    return schemas
+
+
+def prepare_schema(raw_schema: Dict[int, Type] | Any) -> Dict[int, Type]:
+   """Prepare schema for response parsing."""
+   print('raw_schema', raw_schema)
+   if isinstance(raw_schema, dict):
+      return raw_schema
+   return {200: raw_schema}
 
 
 def get_response_schema_dict(view_func) -> Dict[int, Type]:
@@ -190,12 +227,16 @@ def get_response_schema_dict(view_func) -> Dict[int, Type]:
 
    if isinstance(schema, dict):
       return schema
+   print('schema', schema)
 
    try:
-      return parse_tuple_annotation(schema)
+      raw_schema = parse_tuple_annotation(schema)
+      return prepare_schema(raw_schema)
    except (ValueError, AttributeError) as e:
       raise ValueError(
-         f"Invalid return type annotation. Must be either a dict mapping status codes to schemas, or a Tuple/Union of Tuples. Error: {str(e)}")
+         f"Invalid return type annotation. Must be either a dict "
+         f"mapping status codes to schemas, or a Tuple/Union of "
+         f"Tuples. Error: {str(e)}")
 
 
 __all__ = [
