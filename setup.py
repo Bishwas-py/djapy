@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
    name="djapy",
-   version="0.2.0",
+   version="0.2.1",
    description="Fast, zero-boilerplate Django REST API framework with pure Python typing!",
    long_description=long_description,
    long_description_content_type="text/markdown",
