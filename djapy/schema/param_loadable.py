@@ -1,17 +1,16 @@
 __all__ = ['is_payload_type', 'as_json', 'as_form']
 
-from enum import Enum
 from typing import Generic, Literal, Any
 
 from djapy.core.typing_utils import G_TYPE
 
 
-class Cvar(Enum):
+class Cvar:
    form = "application/x-www-form-urlencoded"
    json = "application/json"
 
 
-CvarLiteral = Literal[Cvar.form, Cvar.json]
+CvarLiteral = Literal["application/x-www-form-urlencoded", "application/json"]
 
 
 def _payload_instance(cls, un, cvar_c_type: CvarLiteral):
