@@ -27,7 +27,7 @@ class AsJson(Generic[G_TYPE]):
 
 class AsForm(Generic[G_TYPE]):
    def __class_getitem__(cls, un: G_TYPE) -> G_TYPE:
-      return _payload_instance(cls, un, Cvar.json)
+      return _payload_instance(cls, un, Cvar.form)
 
 
 as_json = AsJson
