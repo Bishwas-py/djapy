@@ -1,0 +1,14 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "editor.formatOnSave": true,
+    "notebook.output.scrolling": true,
+    "notebook.output.textLineLimit": 30,
+    "notebook.diff.ignoreOutputs": false,
+}
