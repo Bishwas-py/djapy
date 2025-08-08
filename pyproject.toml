@@ -1,0 +1,35 @@
+[project]
+name = "djapy"
+version = "0.2.1"
+description = "Fast, zero-boilerplate Django REST API framework with pure Python typing!"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "Django",
+    "pydantic",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.6,<0.9.0"]
+build-backend = "uv_build"
+
+[project.urls]
+Homepage = "https://example.com"
+Documentation = "https://djapy-docs.pages.dev/"
+Repository = "https://github.com/Bishwas-py/djapy"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent"
+]
+
+
+
+
+  
+
