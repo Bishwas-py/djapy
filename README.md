@@ -162,7 +162,7 @@ def get_post(request, post_id: int) -> {
 
 ## 📚 Documentation
 
-Visit [djapy.io](https://djapy.io) for comprehensive documentation.
+Visit [djapy-docs.pages.dev/](https://djapy-docs.pages.dev/) for comprehensive documentation.
 
 ## 🤝 Community & Support
 
