@@ -186,11 +186,7 @@ class AsyncResponseParser(ResponseParser):
    """Async response parser implementation."""
 
    async def parse_data(self) -> Dict[str, Any]:
-      """Async version of response data parsing.
-      
-      Args:
-          mode: Serialization mode - 'json' or 'python' (default: 'json')
-      """
+      """Async version of response data parsing."""
       return await sync_to_async(super().parse_data)(mode="json")
 
 
