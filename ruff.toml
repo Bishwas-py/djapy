@@ -1,0 +1,23 @@
+line-length = 10000
+
+
+[format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+
+[lint]
+ignore = [
+    # skip unused variable rules (`F841`).
+    "F841",
+
+    # skip `place import at top of file rule`
+    "E402",
+
+    # skip `delete unused imports rule`
+    "F401",
+]
+
+[isort]
+force-single-line = true
