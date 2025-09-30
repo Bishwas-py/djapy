@@ -176,11 +176,14 @@ class Outsource(BaseModel):
       return obj
 
 
-def query_list_validator(value: QuerySet):
+def query_list_validator(value):
    """
-   Validator to ensure the Django QuerySet is converted to an iterable.
+   Validator to ensure the Django QuerySet or RelatedManager is converted to an iterable.
    """
-   return value.all()
+   # Handle both QuerySet and RelatedManager
+   if hasattr(value, 'all'):
+      return value.all()
+   return value
 
 
 QueryList = Annotated[List[G_TYPE], BeforeValidator(query_list_validator)]

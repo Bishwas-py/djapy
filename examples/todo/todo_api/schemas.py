@@ -188,7 +188,7 @@ class TodoSchema(TodoBaseSchema):
 
 class TodoDetailSchema(TodoSchema):
     """Extended todo schema with comments"""
-    comments: List[CommentSchema] = Field(default_factory=list)
+    comments: QueryList[CommentSchema] = Field(default_factory=list)
     owner: Optional[CommentAuthorSchema] = None
 
     @computed_field
