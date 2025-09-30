@@ -15,7 +15,12 @@ classifiers = [
 ]
 dependencies = [
     "Django",
-    "pydantic",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+performance = [
+    "orjson>=3.9.0",  # Fast JSON serialization (3-5x faster than standard json)
 ]
 
 [build-system]
