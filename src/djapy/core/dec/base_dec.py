@@ -26,7 +26,7 @@ from djapy.core.labels import (
    DJAPY_AUTH
 )
 from djapy.core.view_func import WrappedViewT, ViewFuncT
-from djapy.schema.handle import is_payload_type
+from djapy.schema.param_loadable import is_payload_type
 from djapy.schema.schema import Schema, Form, QueryMapperSchema
 
 ERROR_HANDLER_MODULE = "djapy_ext.errorhandler"
