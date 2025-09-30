@@ -1,7 +1,7 @@
 import asyncio
 import json
 from functools import wraps
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, markcoroutinefunction
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from .base_dec import BaseDjapifyDecorator
@@ -80,4 +80,6 @@ class AsyncDjapifyDecorator(BaseDjapifyDecorator):
             return await sync_to_async(self.handle_error)(request, exc)
 
       self._set_common_attributes(wrapped_view, view_func)
+      # Mark as coroutine function for proper ASGI detection
+      markcoroutinefunction(wrapped_view)
       return wrapped_view
