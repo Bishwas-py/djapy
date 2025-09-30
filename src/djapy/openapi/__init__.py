@@ -70,9 +70,14 @@ class OpenAPI:
          if getattr(openapi_path_.url_pattern.callback, 'openapi', False):
             self.paths[openapi_path_.path] = openapi_path_.dict()
       except Exception as e:
-         # Log error but don't break schema generation
+         # Log error with context but don't break schema generation
          import logging
-         logging.warning(f"Error setting path exports: {e}")
+         view_name = getattr(openapi_path_.url_pattern.callback, '__name__', 'unknown')
+         path = getattr(openapi_path_, 'path', 'unknown')
+         logging.warning(
+            f"Error generating OpenAPI schema for path '{path}' (view: {view_name}): {e}",
+            exc_info=True  # Include traceback in debug mode
+         )
 
    def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns=None):
       if parent_url_patterns is None:
