@@ -61,7 +61,7 @@ class AsyncDjapifyDecorator(BaseDjapifyDecorator):
             )
 
             # Parse with mode='json' for JSON serialization
-            result = await parser.parse_data(mode='json')
+            result = await parser.parse_data()
 
             # Build response efficiently
             if response is None:

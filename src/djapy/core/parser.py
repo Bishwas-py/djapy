@@ -185,13 +185,13 @@ class AsyncRequestParser(RequestParser):
 class AsyncResponseParser(ResponseParser):
    """Async response parser implementation."""
 
-   async def parse_data(self, mode: str = "json") -> Dict[str, Any]:
+   async def parse_data(self) -> Dict[str, Any]:
       """Async version of response data parsing.
       
       Args:
           mode: Serialization mode - 'json' or 'python' (default: 'json')
       """
-      return await sync_to_async(super().parse_data)(mode=mode)
+      return await sync_to_async(super().parse_data)(mode="json")
 
 
 def get_response_schema_dict(view_func: WrappedViewT) -> dyp.schema:
