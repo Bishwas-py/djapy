@@ -39,7 +39,7 @@ wheels = [
 
 [[package]]
 name = "djapy"
-version = "0.2.1"
+version = "0.3.1.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
