@@ -9,6 +9,7 @@ from django.db.models import Q, Count, Prefetch
 from django.views.decorators.cache import cache_page
 
 from djapy import djapify, async_djapify
+from djapy.pagination import paginate, OffsetLimitPagination, PageNumberPagination, CursorPagination
 
 from .models import Todo, Tag, Comment
 from .schemas import (
@@ -26,13 +27,21 @@ CACHE_TTL = 300
 # ============================================================================
 
 @djapify(method="GET", tags=TAGS)
+@paginate(OffsetLimitPagination)
 def list_todos(
     request,
     completed: Optional[bool] = None,
     priority: Optional[str] = None,
     search: Optional[str] = None,
 ) -> List[TodoSchema]:
-    """List todos with filtering"""
+    """
+    List todos with filtering and pagination
+    
+    Demonstrates:
+    - Offset/limit pagination with computed fields
+    - Efficient querying with select_related
+    - Query parameter filtering
+    """
     queryset = Todo.objects.select_related('owner').prefetch_related('tags')
     
     if completed is not None:
@@ -42,7 +51,7 @@ def list_todos(
     if search:
         queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
     
-    return list(queryset[:100])
+    return queryset
 
 
 @djapify(method="POST", tags=TAGS)
@@ -116,16 +125,21 @@ def delete_todo(request, todo_id: int) -> {204: MessageSchema, 404: ErrorSchema}
 # ============================================================================
 
 @async_djapify(method="GET", tags=['async'])
+@paginate(PageNumberPagination)
 async def list_todos_async(request, completed: Optional[bool] = None) -> List[TodoSchema]:
-    """Async list todos"""
+    """
+    Async list todos with page number pagination
+    
+    Demonstrates:
+    - Async pagination
+    - Page number based pagination
+    - Computed fields (items_count, start_index, etc.)
+    """
     queryset = Todo.objects.select_related('owner').prefetch_related('tags')
     if completed is not None:
         queryset = queryset.filter(completed=completed)
     
-    todos = []
-    async for todo in queryset[:100]:
-        todos.append(todo)
-    return todos
+    return queryset
 
 
 @async_djapify(method="POST", tags=['async'])
