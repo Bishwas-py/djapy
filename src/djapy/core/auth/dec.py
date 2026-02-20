@@ -36,7 +36,8 @@ def djapy_auth(auth: Type[BaseAuthMechanism] | BaseAuthMechanism | None = None,
          wrapped.djapy_auth = auth(permissions)
       else:
          wrapped.djapy_auth = auth
-      wrapped.djapy_auth.set_message_response(msg)
+      if msg is not None:
+         wrapped.djapy_auth.set_message_response(msg)
 
       return wrapped
 

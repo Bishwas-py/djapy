@@ -87,7 +87,10 @@ class RequestParser(BaseParser):
       body_data = {}
       if not self.schemas["data"].is_empty():
          body_str = self._get_body()
-         if body_str and body_str.strip():  # Check for non-empty
+         if not body_str or not body_str.strip():
+            # Empty body but schema expects data — validate empty dict to get proper error
+            body_data = self._validate_schema(self.schemas["data"], {})
+         elif body_str and body_str.strip():  # Check for non-empty
             try:
                # Fast path: use model_validate_json for better performance
                body_bytes = body_str.encode('utf-8')
