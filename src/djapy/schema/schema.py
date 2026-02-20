@@ -126,7 +126,7 @@ json_modal_schema = create_model(
 def get_json_dict(to_jsonify_text: str):
    return json_modal_schema.model_validate({
       JSON_BODY_PARSE_NAME: to_jsonify_text
-   }).dict().get(JSON_BODY_PARSE_NAME)
+   }).model_dump().get(JSON_BODY_PARSE_NAME)
 
 
 class QueryMapperSchema(Schema):
@@ -154,7 +154,7 @@ class Form(QueryMapperSchema):
    cvar_c_type = "application/x-www-form-urlencoded"
 
 
-class Outsource(BaseModel):
+class Outsource(Schema):
    """
    Allows the model to have a source object, info object and context object.
    Specially useful for validation and checking on @computed_fields.
