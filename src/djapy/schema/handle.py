@@ -1,11 +1,9 @@
-__all__ = ['as_json', 'as_form', 'uni_schema', 'status_codes', 'is_payload_type']
+__all__ = ['uni_schema', 'status_codes']
 
 from http.client import responses
-from inspect import Parameter
-from typing import Type, TypedDict, Literal
+from typing import Type, TypedDict
 
 from .schema import Schema
-from djapy.core.typing_utils import G_TYPE
 
 
 class StatusCodes:
@@ -24,8 +22,7 @@ class ReSchema:
    This class is used to generate response schemas for different status codes.
    """
 
-   def __call__(self, schema: Schema | Type[TypedDict],
-                status_set=None):
+   def __call__(self, schema: Schema | Type[TypedDict], status_set=None):
       """
       :param schema: The schema to be used.
       :param status_set: The status codes to be used. Default is None. If None, all status codes are used `(2xx, 4xx, 5xx)`.
@@ -47,28 +44,5 @@ class ReSchema:
       return self.__call__(schema, status_codes.all)
 
 
-class Payload:
-   unquery_type: G_TYPE | None = None
-
-   def __init__(self,
-                cvar_c_type: Literal["application/json", "application/x-www-form-urlencoded"] = "application/json"):
-      self.cvar_c_type = cvar_c_type
-
-   def __call__(self, type_: G_TYPE) -> G_TYPE:
-      """
-      Enforces any type to be received as a payload.
-      """
-      self.unquery_type = type_
-      return self
-
-
-def is_payload_type(param: Parameter) -> Payload | None:
-   if param and isinstance(param, Payload):
-      return param
-
-
-as_json = Payload()
-as_form = Payload("application/x-www-form-urlencoded")
-
-uni_schema = ReSchema()  # uni_schema is short for unified schema
+uni_schema = ReSchema()
 status_codes = StatusCodes()

@@ -2,7 +2,7 @@ import json
 from functools import wraps
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 
 from .base_dec import BaseDjapifyDecorator
 from ..parser import RequestParser, ResponseParser
@@ -16,36 +16,61 @@ class SyncDjapifyDecorator(BaseDjapifyDecorator):
 
       @wraps(view_func)
       def wrapped_view(request: HttpRequest, *args, **kwargs):
-         self._prepare(view_func)
+         # Lazy preparation - only prepare once
+         if not hasattr(view_func, 'djapy_prepared'):
+            self._prepare(view_func)
+            view_func.djapy_prepared = True
 
+         # Fast access check
          if msg := self.check_access(request, view_func, *args, **kwargs):
             return msg
 
          try:
-            response = HttpResponse(content_type="application/json")
-
-            # Use sync request parser
+            # Use optimized request parser with caching
             req_p = RequestParser(request, view_func, kwargs)
             data = req_p.parse_data()
 
+            # Inject response if needed
             if view_func.djapy_resp_param:
+               response = HttpResponse(content_type="application/json")
                data[view_func.djapy_resp_param.name] = response
+            else:
+               response = None
 
+            # Execute view function
             content = view_func(request, *args, **data)
 
-            # Use sync response parser
+            # Determine status and data
+            status = 200 if not isinstance(content, tuple) else content[0]
+            response_data = content if not isinstance(content, tuple) else content[1]
+
+            # Fast path: If already JsonResponse, return it
+            if isinstance(content, JsonResponse):
+               return content
+
+            # Use optimized response parser
             res_p = ResponseParser(
                request=request,
-               status=200 if not isinstance(content, tuple) else content[0],
-               data=content if not isinstance(content, tuple) else content[1],
+               status=status,
+               data=response_data,
                schemas=view_func.schema,
                input_data=data
             )
 
-            result = res_p.parse_data()
-            if isinstance(content, tuple):
-               response.status_code = content[0]
-            response.content = json.dumps(result, cls=DjangoJSONEncoder)
+            # Parse with mode='json' for JSON serialization
+            result = res_p.parse_data(mode='json')
+            
+            # Build response efficiently
+            if response is None:
+               response = HttpResponse(content_type="application/json")
+            response.status_code = status
+            # Use orjson if available for better performance, fallback to standard json
+            try:
+               import orjson
+               response.content = orjson.dumps(result)
+            except ImportError:
+               response.content = json.dumps(result, cls=DjangoJSONEncoder)
+            
             return response
 
          except Exception as exc:

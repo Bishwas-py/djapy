@@ -2,7 +2,41 @@
 __pycache__/
 *.py[codz]
 *$py.class
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
 
+# Virtual environments
+venv/
+.venv/
+
+# Django
+db.sqlite3
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep specific files
 !djapy/*.*
 !mkdocs.yml
 !README.md

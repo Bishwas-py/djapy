@@ -1,9 +1,12 @@
 import json
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Dict, Any
+from functools import lru_cache
+import hashlib
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.urls import URLPattern, get_resolver, path, reverse
+from django.core.cache import cache
 
 from .defaults import ABS_TPL_PATH
 from .icons import icons
@@ -17,6 +20,8 @@ class PassedBaseUrl(TypedDict):
 
 
 class OpenAPI:
+   """Enhanced OpenAPI generator with caching and better performance."""
+   
    openapi = "3.1.0"
    description = "Powerful djapy powered API, built with Django and Pydantic"
    info = Info("Djapy", "1.0.0", description)
@@ -29,28 +34,50 @@ class OpenAPI:
    passed_base_urls = None
    contact = None
    license = None
+   
+   # Cache configuration
+   _cache_enabled = True
+   _cache_timeout = 300  # 5 minutes default
+   _schema_cache_key = "djapy:openapi:schema"
 
-   def __init__(self):
+   def __init__(self, cache_enabled: bool = True):
       self.resolved_url = get_resolver()
+      self._cache_enabled = cache_enabled
+      self._path_hash = None
 
    @staticmethod
    def is_djapy_openapi(view_func):
       return getattr(view_func, 'djapy', False) and getattr(view_func, 'openapi', False)
 
-   def set_path_and_exports(self, openapi_path_: OpenAPI_Path):
-      if openapi_path_.export_definitions:
-         self.definitions.update(path.export_definitions)
-      if openapi_path_.export_components:
-         self.components["schemas"].update(openapi_path_.export_components)
-      if openapi_path_.export_security_schemes:
-         self.components["securitySchemes"] = {
-            **self.components.get("securitySchemes", {}),
-            **openapi_path_.export_security_schemes
-         }
-      if openapi_path_.export_tags:
-         self.tags.extend(openapi_path_.export_tags)
-      if getattr(openapi_path_.url_pattern.callback, 'openapi', False):
-         self.paths[openapi_path_.path] = openapi_path_.dict()
+   def set_path_and_exports(self, openapi_path_: OpenAPI_Path) -> None:
+      """Set path and export schemas with better error handling."""
+      try:
+         if openapi_path_.export_definitions:
+            self.definitions.update(openapi_path_.export_definitions)
+         if openapi_path_.export_components:
+            self.components["schemas"].update(openapi_path_.export_components)
+         if openapi_path_.export_security_schemes:
+            if "securitySchemes" not in self.components:
+               self.components["securitySchemes"] = {}
+            self.components["securitySchemes"].update(openapi_path_.export_security_schemes)
+         if openapi_path_.export_tags:
+            # Only add unique tags
+            existing_tag_names = {tag.get('name') for tag in self.tags}
+            for tag in openapi_path_.export_tags:
+               if tag.get('name') not in existing_tag_names:
+                  self.tags.append(tag)
+                  existing_tag_names.add(tag.get('name'))
+         if getattr(openapi_path_.url_pattern.callback, 'openapi', False):
+            self.paths[openapi_path_.path] = openapi_path_.dict()
+      except Exception as e:
+         # Log error with context but don't break schema generation
+         import logging
+         view_name = getattr(openapi_path_.url_pattern.callback, '__name__', 'unknown')
+         path = getattr(openapi_path_, 'path', 'unknown')
+         logging.warning(
+            f"Error generating OpenAPI schema for path '{path}' (view: {view_name}): {e}",
+            exc_info=True  # Include traceback in debug mode
+         )
 
    def generate_paths(self, url_patterns: list[URLPattern], parent_url_patterns=None):
       if parent_url_patterns is None:
@@ -67,23 +94,58 @@ class OpenAPI:
                print(f"[x] Error in generating paths for view: `{url_pattern.callback.__name__}`;")
             raise e
 
-   def dict(self, request: HttpRequest):
+   def _compute_url_hash(self) -> str:
+      """Compute hash of URL patterns for cache invalidation."""
+      url_repr = str(self.resolved_url.url_patterns)
+      return hashlib.md5(url_repr.encode()).hexdigest()
+
+   def dict(self, request: HttpRequest, use_cache: bool = True) -> Dict[str, Any]:
+      """Generate OpenAPI schema with optional caching.
+      
+      Args:
+          request: Django HttpRequest
+          use_cache: Whether to use cached schema (default: True)
+      
+      Returns:
+          OpenAPI schema dictionary
+      """
+      # Check cache first
+      if use_cache and self._cache_enabled:
+         current_hash = self._compute_url_hash()
+         cache_key = f"{self._schema_cache_key}:{current_hash}"
+         cached_schema = cache.get(cache_key)
+         
+         if cached_schema:
+            # Update dynamic parts (servers)
+            cached_schema['servers'][0]['url'] = request.build_absolute_uri('/')
+            return cached_schema
+      
+      # Generate fresh schema
       self.generate_paths(self.resolved_url.url_patterns)
       servers = [
          {'url': request.build_absolute_uri('/'), 'description': 'Local server'},
       ]
       if self.passed_base_urls:
          servers.extend(self.passed_base_urls)
-      return {
+      
+      schema = {
          'openapi': self.openapi,
          'info': self.info.dict(),
          'paths': self.paths,
          'components': self.components,
          '$defs': self.definitions,
-         'tags': self.tags,
+         'tags': list({tag['name']: tag for tag in self.tags}.values()),  # Deduplicate tags
          'security': self.security,
          'servers': servers
       }
+      
+      # Cache the result
+      if use_cache and self._cache_enabled:
+         current_hash = self._compute_url_hash()
+         cache_key = f"{self._schema_cache_key}:{current_hash}"
+         cache.set(cache_key, schema, self._cache_timeout)
+      
+      return schema
 
    def set_basic_info(
      self, title: str, description, version="1.0.0",
@@ -105,9 +167,20 @@ class OpenAPI:
       self.security = security or {}
       self.passed_base_urls = passed_base_url
 
-   def get_openapi(self, request):
+   def get_openapi(self, request: HttpRequest) -> JsonResponse:
+      """Get OpenAPI schema as JSON response."""
       openapi_dict = self.dict(request)
-      return JsonResponse(openapi_dict)
+      return JsonResponse(
+         openapi_dict,
+         json_dumps_params={'indent': 2}  # Pretty print for better readability
+      )
+   
+   def clear_cache(self) -> None:
+      """Clear OpenAPI schema cache."""
+      if self._cache_enabled:
+         current_hash = self._compute_url_hash()
+         cache_key = f"{self._schema_cache_key}:{current_hash}"
+         cache.delete(cache_key)
 
    def render_swagger_ui(self, request):
       openapi_json_url = reverse('djapy:openapi')
