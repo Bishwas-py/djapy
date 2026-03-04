@@ -73,6 +73,9 @@ class BaseDjapifyDecorator:
          return None
       if r := w.djapy_auth.authenticate(request, *args, **kwargs):
          return JsonResponse(r[1], status=r[0])
+      if w.djapy_auth.permissions:
+         if r := w.djapy_auth.authorize(request, *args, **kwargs):
+            return JsonResponse(r[1], status=r[0])
 
    @staticmethod
    def _get_tuple(param: inspect.Parameter, annotation: Any = None) -> tuple:
