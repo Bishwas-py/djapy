@@ -35,6 +35,28 @@ class TestValidationErrors:
         assert response.status_code == 400
 
 
+class TestNonSerializableErrorInput:
+    def test_generator_input_is_stringified(self):
+        """Validation errors carrying non-JSON-serializable inputs (e.g.
+        generators) must still produce a serializable error payload,
+        instead of crashing JsonResponse and turning a 400 into a 500."""
+        from pydantic import ValidationError
+
+        from djapy.core.response import create_json_from_validation_error
+        from djapy.schema import Schema
+
+        class Out(Schema):
+            n: int
+
+        with pytest.raises(ValidationError) as exc_info:
+            Out.model_validate(i for i in range(3))
+
+        payload = create_json_from_validation_error(exc_info.value)
+        json.dumps(payload)  # must not raise
+        assert payload["type"] == "validation_error"
+        assert payload["error_count"] >= 1
+
+
 class TestMethodNotAllowed:
     def test_get_on_post_only(self, client, db):
         response = client.get("/items/create/")

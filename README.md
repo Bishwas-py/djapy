@@ -166,7 +166,7 @@ Visit [djapy-docs.pages.dev/](https://djapy-docs.pages.dev/) for comprehensive d
 
 ## 🤝 Community & Support
 
-- 📖 [Documentation](https://djapy.io)
+- 📖 [Documentation](https://djapy-docs.pages.dev/)
 - 💬 [Community](https://webmatrices.com/tags/django)
 - 🐛 [Issue Tracker](https://github.com/Bishwas-py/djapy/issues)
 - 📦 [PyPI](https://pypi.org/project/djapy)

@@ -1,6 +1,7 @@
 import json
 from typing import Dict, Any, List
 
+from django.core.serializers.json import DjangoJSONEncoder
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails
 
@@ -16,7 +17,18 @@ def create_json_from_validation_error(exception: ValidationError, detailed: bool
        Structured error dictionary compatible with OpenAPI
    """
    errors = exception.errors()
-   
+
+   # Ensure error payloads stay JSON-serializable; pydantic embeds raw
+   # input values (e.g. generators, model instances) in error details,
+   # which would otherwise crash JsonResponse and turn a 400 into a 500.
+   for error in errors:
+      for key in ("input", "ctx"):
+         if key in error:
+            try:
+               json.dumps(error[key], cls=DjangoJSONEncoder)
+            except TypeError:
+               error[key] = str(error[key])
+
    if detailed:
       return {
          'errors': errors,
