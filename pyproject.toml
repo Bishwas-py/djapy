@@ -3,6 +3,10 @@ name = "djapy"
 version = "0.3.1.dev1"
 description = "Fast, zero-boilerplate Django REST API framework with pure Python typing!"
 readme = "README.md"
+authors = [
+    { name = "Bishwas Bhandari", email = "bishwasbh@gmail.com" },
+]
+keywords = ["django", "rest", "api", "pydantic", "openapi", "swagger", "typing"]
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -44,6 +48,7 @@ build-backend = "uv_build"
 Homepage = "https://github.com/Bishwas-py/djapy"
 Documentation = "https://djapy-docs.pages.dev/"
 Repository = "https://github.com/Bishwas-py/djapy"
+Issues = "https://github.com/Bishwas-py/djapy/issues"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
