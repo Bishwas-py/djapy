@@ -14,11 +14,13 @@ classifiers = [
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "Django>=4.2,<5.2",
+    "Django>=4.2,<6.1",
     "pydantic>=2.0",
     "asgiref>=3.7.0",
 ]
