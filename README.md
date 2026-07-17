@@ -5,7 +5,8 @@ giving you a clean, intuitive way to build REST APIs.
 
 [![PyPI version](https://badge.fury.io/py/djapy.svg)](https://badge.fury.io/py/djapy)
 [![Python Versions](https://img.shields.io/pypi/pyversions/djapy.svg)](https://pypi.org/project/djapy)
-[![Django Versions](https://img.shields.io/badge/django-3.2%20%7C%204.0%20%7C%204.1%20%7C%204.2-blue)](https://github.com/Bishwas-py/djapy)
+[![Django Versions](https://img.shields.io/badge/django-4.2%20%7C%205.1%20%7C%205.2%20%7C%206.0-blue)](https://github.com/Bishwas-py/djapy)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Bishwas-py/djapy/blob/main/LICENSE)
 [![Downloads](https://static.pepy.tech/badge/djapy)](https://pepy.tech/project/djapy)
 
 ```python

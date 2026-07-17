@@ -3,6 +3,8 @@ name = "djapy"
 version = "0.3.1.dev1"
 description = "Fast, zero-boilerplate Django REST API framework with pure Python typing!"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Bishwas Bhandari", email = "bishwasbh@gmail.com" },
 ]
@@ -20,7 +22,7 @@ classifiers = [
     "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
